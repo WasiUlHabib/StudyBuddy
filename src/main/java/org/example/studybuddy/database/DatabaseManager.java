@@ -251,6 +251,28 @@ public class DatabaseManager {
         FOREIGN KEY (user_id) REFERENCES users(id)
     )
 """;
+        // Enhanced exam logs table
+        String createExamLogsTable = """
+    CREATE TABLE IF NOT EXISTS exam_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        exam_name TEXT NOT NULL,
+        total_questions INTEGER,
+        correct_answers INTEGER,
+        wrong_answers INTEGER,
+        unanswered INTEGER,
+        score REAL,
+        percentage REAL,
+        time_taken INTEGER, -- in seconds
+        difficulty_avg REAL,
+        topics_covered TEXT, -- JSON array of topics
+        completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        exam_type TEXT DEFAULT 'practice', -- 'practice', 'timed', 'group'
+        room_id INTEGER DEFAULT NULL, -- for group exams
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (room_id) REFERENCES rooms(id)
+    )
+""";
 
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createUsersTable);
@@ -268,6 +290,7 @@ public class DatabaseManager {
             stmt.execute(createRoomParticipantsTable);
             stmt.execute(createRoomQuestionsTable);
             stmt.execute(createRoomMessagesTable);
+            stmt.execute(createExamLogsTable);
             System.out.println("Database tables created successfully!");
 
         } catch (SQLException e) {

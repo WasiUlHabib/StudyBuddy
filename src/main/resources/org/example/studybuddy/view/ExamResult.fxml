@@ -72,6 +72,9 @@
                     <Button fx:id="takeAnotherButton" text="Take Another Exam" onAction="#takeAnotherExam"
                             style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 14;"
                             prefWidth="150" prefHeight="40" />
+                    <Button fx:id="downloadPdfButton" text="Download PDF" onAction="#handleDownloadPdf"
+                            style="-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-size: 14;"
+                            prefWidth="150" prefHeight="40" />
                 </HBox>
             </VBox>
         </ScrollPane>

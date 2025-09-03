@@ -69,4 +69,13 @@ public class ExamResult {
         int seconds = timeTaken % 60;
         return String.format("%02d:%02d", minutes, seconds);
     }
+
+    public double getPercentage() {
+        if (totalQuestions == 0) {
+            return 0.0;
+        }
+        double percentage = ((double) correctAnswers / totalQuestions) * 100;
+        return Math.round(percentage * 100.0) / 100.0; // Round to 2 decimal places
+    }
+
 }

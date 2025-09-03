@@ -229,4 +229,5 @@ public class ExamSetupController implements Initializable {
         sessionManager.logout();
         SceneManager.getInstance().switchToLogin();
     }
+
 }
