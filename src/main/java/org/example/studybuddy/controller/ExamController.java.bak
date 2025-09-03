@@ -12,7 +12,36 @@ import java.util.ResourceBundle;
 import org.example.studybuddy.database.AnalyticsDAO;
 import org.example.studybuddy.database.ExamDAO;
 import org.example.studybuddy.database.ExamLogDAO;
+package org.example.studybuddy.controller;
+
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.ResourceBundle;
+
+import org.example.studybuddy.database.AnalyticsDAO;
+import org.example.studybuddy.database.ExamDAO;
+import org.example.studybuddy.database.ExamLogDAO;
 import org.example.studybuddy.database.ExamQuestionLogDAO;
+import org.example.studybuddy.database.QuestionDAO;
+import org.example.studybuddy.model.*;
+import org.example.studybuddy.util.SceneManager;
+import org.example.studybuddy.util.SessionManager;
+import org.example.studybuddy.util.PDFExporter;
+
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.util.Duration;
+import javafx.stage.FileChooser;tabase.ExamQuestionLogDAO;
 import org.example.studybuddy.database.QuestionDAO;
 import org.example.studybuddy.model.Exam;
 import org.example.studybuddy.model.ExamLog;
@@ -434,6 +463,10 @@ public class ExamController implements Initializable {
                     question.getQuestionText(),
                     userAnswer,
                     correctAnswer,
+                    question.getOptionA(),
+                    question.getOptionB(),
+                    question.getOptionC(),
+                    question.getOptionD(),
                     isCorrect
                 );
             }

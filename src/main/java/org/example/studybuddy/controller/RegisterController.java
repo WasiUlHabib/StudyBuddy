@@ -66,10 +66,8 @@ public class RegisterController {
             passwordField.clear();
             confirmPasswordField.clear();
 
-            // Optional: Auto-navigate to login after 2 seconds
-            javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
-            delay.setOnFinished(e -> SceneManager.getInstance().switchToLogin());
-            delay.play();
+                // Directly navigate to dashboard after successful registration
+                SceneManager.getInstance().switchToDashboard();
 
         } else {
             // Registration failed

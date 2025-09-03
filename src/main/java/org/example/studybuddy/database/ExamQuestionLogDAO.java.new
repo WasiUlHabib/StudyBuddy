@@ -1,0 +1,133 @@
+package org.example.studybuddy.database;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.example.studybuddy.controller.ExamDetailController.QuestionDetail;
+
+public class ExamQuestionLogDAO {
+    private final Connection connection;
+
+    public ExamQuestionLogDAO() {
+        this.connection = DatabaseManager.getInstance().getConnection();
+    }
+
+    // Create table if not exists
+    public void createTable() {
+        try (Statement stmt = connection.createStatement()) {
+            // First drop the existing table if it exists
+            stmt.execute("DROP TABLE IF EXISTS exam_question_logs");
+            
+            // Then create the new table with all columns
+            String sql = """
+                CREATE TABLE exam_question_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    exam_log_id INTEGER NOT NULL,
+                    question_id INTEGER NOT NULL,
+                    question_text TEXT NOT NULL,
+                    chosen_answer TEXT,
+                    correct_answer TEXT NOT NULL,
+                    is_correct BOOLEAN NOT NULL,
+                    option_a TEXT NOT NULL,
+                    option_b TEXT NOT NULL,
+                    option_c TEXT NOT NULL,
+                    option_d TEXT NOT NULL,
+                    FOREIGN KEY (exam_log_id) REFERENCES exam_logs(id) ON DELETE CASCADE,
+                    FOREIGN KEY (question_id) REFERENCES questions(id)
+                )
+            """;
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            System.err.println("Error creating exam_question_logs table: " + e.getMessage());
+        }
+    }
+
+    // Save question details for an exam
+    public boolean saveQuestionLog(int examLogId, int questionId, String questionText,
+                                 String chosenAnswer, String correctAnswer, boolean isCorrect,
+                                 String optionA, String optionB, String optionC, String optionD) {
+        String sql = """
+            INSERT INTO exam_question_logs (exam_log_id, question_id, question_text, 
+                                         chosen_answer, correct_answer, is_correct,
+                                         option_a, option_b, option_c, option_d)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, examLogId);
+            stmt.setInt(2, questionId);
+            stmt.setString(3, questionText);
+            stmt.setString(4, chosenAnswer);
+            stmt.setString(5, correctAnswer);
+            stmt.setBoolean(6, isCorrect);
+            stmt.setString(7, optionA);
+            stmt.setString(8, optionB);
+            stmt.setString(9, optionC);
+            stmt.setString(10, optionD);
+
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error saving question log: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Get question details for an exam
+    public List<QuestionDetail> getExamQuestionDetails(int examLogId) {
+        List<QuestionDetail> details = new ArrayList<>();
+        String sql = """
+            SELECT question_text, chosen_answer, correct_answer, is_correct,
+                   option_a, option_b, option_c, option_d
+            FROM exam_question_logs 
+            WHERE exam_log_id = ? 
+            ORDER BY id ASC
+        """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, examLogId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                int questionNumber = 1;
+                while (rs.next()) {
+                    String questionText = rs.getString("question_text");
+                    String chosenAnswer = rs.getString("chosen_answer"); // A, B, C, or D
+                    String correctAnswer = rs.getString("correct_answer"); // A, B, C, or D
+                    boolean isCorrect = rs.getBoolean("is_correct");
+
+                    // Create options map
+                    Map<String, String> optionsMap = new HashMap<>();
+                    optionsMap.put("A", rs.getString("option_a"));
+                    optionsMap.put("B", rs.getString("option_b"));
+                    optionsMap.put("C", rs.getString("option_c"));
+                    optionsMap.put("D", rs.getString("option_d"));
+
+                    // Format answer strings with both letter and text
+                    String chosenAnswerText = chosenAnswer != null ? 
+                        String.format("(%s) %s", chosenAnswer, optionsMap.get(chosenAnswer)) : 
+                        "Not answered";
+                    String correctAnswerText = String.format("(%s) %s", correctAnswer, optionsMap.get(correctAnswer));
+
+                    String result = chosenAnswer == null ? "Unanswered" : 
+                                  (isCorrect ? "Correct" : "Incorrect");
+
+                    details.add(new QuestionDetail(
+                        questionNumber++,
+                        questionText,
+                        chosenAnswerText,
+                        correctAnswerText,
+                        result
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error retrieving question details: " + e.getMessage());
+        }
+        return details;
+    }
+}

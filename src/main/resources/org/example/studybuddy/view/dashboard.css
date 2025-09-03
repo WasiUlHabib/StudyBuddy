@@ -1,0 +1,92 @@
+/* dashboard.css - Modern Dashboard UI for StudyBuddy */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+.root {
+    -fx-background-color: linear-gradient(120deg, #f8fafc 0%, #e3f0ff 100%);
+    -fx-font-family: 'Roboto', sans-serif;
+}
+
+.menu-bar {
+    -fx-background-color: #e3f0ff;
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-padding: 0 0 5 0;
+}
+
+.label {
+    -fx-text-fill: #222;
+    -fx-font-family: 'Roboto', sans-serif;
+}
+
+/* Card Styles */
+.card {
+    -fx-background-color: #fff;
+    -fx-background-radius: 16;
+    -fx-padding: 24 32 24 32;
+    -fx-effect: dropshadow(gaussian, #b0c4de, 8, 0.2, 0, 2);
+    -fx-spacing: 8;
+    -fx-alignment: center;
+    -fx-border-color: #e3f0ff;
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-transition: box-shadow 0.3s;
+}
+.card:hover {
+    -fx-effect: dropshadow(gaussian, #90caf9, 16, 0.3, 0, 4);
+    -fx-background-color: #f5faff;
+}
+
+/* Chart Area */
+.line-chart {
+    -fx-background-color: #f5faff;
+    -fx-border-color: #b0c4de;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 16;
+}
+.axis {
+    -fx-tick-label-fill: #1976d2;
+    -fx-font-size: 13px;
+}
+.chart-plot-background {
+    -fx-background-color: #e3f0ff;
+}
+.chart-grid-lines {
+    -fx-stroke: #b0c4de;
+}
+
+/* Buttons */
+.button {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-background-color: #4caf50;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-padding: 8 24;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, #b0c4de, 2, 0, 0, 1);
+    -fx-border-width: 0;
+    -fx-transition: background-color 0.3s;
+}
+.button:hover {
+    -fx-background-color: #388e3c;
+}
+#refreshStatsButton {
+    -fx-background-color: #2196f3;
+}
+#refreshStatsButton:hover {
+    -fx-background-color: #1976d2;
+}
+
+/* Responsive Layout */
+.vbox {
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-padding: 30 30 30 30;
+}
+.hbox {
+    -fx-spacing: 20;
+    -fx-alignment: center;
+}

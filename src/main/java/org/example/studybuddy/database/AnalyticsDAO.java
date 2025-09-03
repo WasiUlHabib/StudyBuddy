@@ -101,6 +101,32 @@ public class AnalyticsDAO {
         }
     }
 
+        // Update overall user performance after each exam
+        public void updateUserPerformanceAfterExam(int userId, int correctAnswers, int totalQuestions) {
+            String sql = """
+                INSERT INTO user_performance (user_id, exams_count, correct_answers, total_questions, accuracy_percentage)
+                VALUES (?, 1, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    exams_count = exams_count + 1,
+                    correct_answers = correct_answers + ?,
+                    total_questions = total_questions + ?,
+                    accuracy_percentage = ((correct_answers + ?) * 100.0) / (total_questions + ?)
+            """;
+            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+                stmt.setInt(1, userId);
+                stmt.setInt(2, correctAnswers);
+                stmt.setInt(3, totalQuestions);
+                stmt.setDouble(4, totalQuestions > 0 ? (double) correctAnswers / totalQuestions * 100 : 0);
+                stmt.setInt(5, correctAnswers);
+                stmt.setInt(6, totalQuestions);
+                stmt.setInt(7, correctAnswers);
+                stmt.setInt(8, totalQuestions);
+                stmt.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
     // Get exam history with detailed information
     public List<ExamResult> getDetailedExamHistory(int userId, int limit) {
         List<ExamResult> results = new ArrayList<>();
