@@ -25,7 +25,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
-
 import java.util.ArrayList;
 
 public class ExamController implements Initializable {
@@ -376,7 +375,4 @@ public class ExamController implements Initializable {
             e.printStackTrace();
         }
     }
-
-
-
 }

@@ -51,7 +51,7 @@ public class RoomsController implements Initializable {
     @FXML private Label activeRoomDescriptionLabel;
     @FXML private Button leaveRoomButton;
     @FXML private TextArea chatArea;
-    @FXML private TextField chatMessageField;
+    @FXML private TextField chatMessageField; // This is your message input field
     @FXML private Button sendMessageButton;
     @FXML private ListView<String> sharedQuestionsListView;
     @FXML private Button shareQuestionsButton;
@@ -67,12 +67,14 @@ public class RoomsController implements Initializable {
     private ObservableList<RoomMessage> chatMessages = FXCollections.observableArrayList();
     private ChatSimulator chatSimulator = new ChatSimulator();
 
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupRoomsList();
         setupParticipantsList();
         setupSharedQuestionsList();
         loadUserRooms();
+
     }
 
     private void setupSharedQuestionsList() {
@@ -198,8 +200,9 @@ public class RoomsController implements Initializable {
         }
     }
 
-    // UPDATED: Enhanced enterRoom method with shared questions loading
+    // Enhanced enterRoom method with real-time chat connection
     private void enterRoom(Room room) {
+
         currentActiveRoom = room;
 
         // Update active room tab
@@ -207,13 +210,11 @@ public class RoomsController implements Initializable {
         activeRoomCodeLabel.setText("(" + room.getRoomCode() + ")");
         activeRoomDescriptionLabel.setText(room.getDescription() != null ? room.getDescription() : "No description");
 
-        // Load participants
+        // Load participants and shared questions
         loadRoomParticipants();
-
-        // ADDED: Load shared questions visible to all members
         loadRoomSharedQuestions();
 
-        // Load and setup chat
+        // Setup chat
         setupRoomChat();
 
         // Enable active room tab and switch to it
@@ -449,7 +450,7 @@ public class RoomsController implements Initializable {
         });
     }
 
-    // UPDATED: Enhanced question sharing for all room members
+    // Enhanced question sharing for all room members
     private void shareQuestionsWithAllMembers(List<Question> questions) {
         if (currentActiveRoom == null) return;
 
