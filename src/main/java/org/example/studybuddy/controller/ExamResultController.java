@@ -4,6 +4,10 @@ import org.example.studybuddy.model.*;
 import org.example.studybuddy.util.SceneManager;
 import org.example.studybuddy.util.SessionManager;
 import org.example.studybuddy.util.PDFExporter;
+import org.example.studybuddy.util.ExamSettingsDialog; // NEW: Added for room exam dialog
+import javafx.application.Platform;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -14,11 +18,13 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.util.Duration;
 
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class ExamResultController implements Initializable {
@@ -35,19 +41,37 @@ public class ExamResultController implements Initializable {
     @FXML private Button takeAnotherButton;
     @FXML private Button downloadPdfButton;
 
-    // CORRECTED: Fixed static variable names to match usage
     private static ExamResult examResult;
     private static List<Question> questions;
     private static String[] userAnswers;
+
+    // NEW: Session manager for smart navigation
+    private SessionManager sessionManager = SessionManager.getInstance();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         displayResults();
         createPerformanceChart();
         createQuestionReview();
+
+        // NEW: Update button text based on exam context
+        updateButtonText();
     }
 
-    // CORRECTED: Fixed handleDownloadPdf method with proper implementation
+    // NEW: Update button text based on last exam type
+    private void updateButtonText() {
+        if (sessionManager.wasLastExamFromRoom()) {
+            dashboardButton.setText("← Back to Room");
+            takeAnotherButton.setText("Take Another Room Exam");
+            System.out.println("DEBUG: Updated buttons for room exam context - Room: " +
+                    sessionManager.getLastActiveRoom().getName());
+        } else {
+            dashboardButton.setText("← Back to Dashboard");
+            takeAnotherButton.setText("Take Another Exam");
+            System.out.println("DEBUG: Updated buttons for personal exam context");
+        }
+    }
+
     @FXML
     private void handleDownloadPdf(ActionEvent event) {
         try {
@@ -62,7 +86,10 @@ public class ExamResultController implements Initializable {
             fileChooser.getExtensionFilters().add(
                     new FileChooser.ExtensionFilter("PDF Files", "*.pdf")
             );
-            fileChooser.setInitialFileName("StudyBuddy_ExamReport_" +
+
+            // NEW: Include exam type in filename
+            String examType = sessionManager.wasLastExamFromRoom() ? "RoomExam" : "PersonalExam";
+            fileChooser.setInitialFileName("StudyBuddy_" + examType + "_Report_" +
                     LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf");
 
             // Show save dialog
@@ -97,14 +124,21 @@ public class ExamResultController implements Initializable {
         }
     }
 
-    // CORRECTED: Helper method to create ExamLog from ExamResult
+    // UPDATED: Enhanced ExamLog creation with room context
     private ExamLog createExamLogFromResult() {
         if (examResult == null) {
             return null;
         }
 
         ExamLog examLog = new ExamLog();
-        examLog.setExamName("Exam Results");
+
+        // NEW: Set exam name based on context
+        if (sessionManager.wasLastExamFromRoom()) {
+            examLog.setExamName(sessionManager.getLastActiveRoom().getName() + " - Room Exam Results");
+        } else {
+            examLog.setExamName("Personal Exam Results");
+        }
+
         examLog.setTotalQuestions(examResult.getTotalQuestions());
         examLog.setCorrectAnswers(examResult.getCorrectAnswers());
         examLog.setWrongAnswers(examResult.getWrongAnswers());
@@ -117,7 +151,6 @@ public class ExamResultController implements Initializable {
         return examLog;
     }
 
-    // CORRECTED: Helper method to show alerts
     private void showAlert(String title, String message, Alert.AlertType alertType) {
         Alert alert = new Alert(alertType);
         alert.setTitle(title);
@@ -126,7 +159,6 @@ public class ExamResultController implements Initializable {
         alert.showAndWait();
     }
 
-    // CORRECTED: Static method to set exam result data (matches ExamController call)
     public static void setExamResult(ExamResult result, List<Question> questionsList, String[] answers) {
         examResult = result;
         questions = questionsList;
@@ -135,10 +167,14 @@ public class ExamResultController implements Initializable {
 
     private void displayResults() {
         if (examResult != null) {
-            // CORRECTED: Use proper method names that exist in ExamResult
-            examNameLabel.setText("Exam Results"); // or examResult.getExamName() if method exists
+            // NEW: Display exam name based on context
+            if (sessionManager.wasLastExamFromRoom()) {
+                examNameLabel.setText(sessionManager.getLastActiveRoom().getName() + " - Room Exam Results");
+            } else {
+                examNameLabel.setText("Personal Exam Results");
+            }
 
-            // CORRECTED: Use proper date handling
+            // Display completion date
             if (examResult.getCompletedAt() != null) {
                 completedDateLabel.setText("Completed: " + examResult.getCompletedAt().format(
                         DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")));
@@ -165,7 +201,6 @@ public class ExamResultController implements Initializable {
 
         performanceChart.setData(pieChartData);
 
-        // CORRECTED: Use proper percentage calculation
         double percentage = examResult.getTotalQuestions() > 0 ?
                 (double) examResult.getCorrectAnswers() / examResult.getTotalQuestions() * 100 : 0;
         performanceChart.setTitle(String.format("Accuracy: %.1f%%", percentage));
@@ -247,13 +282,98 @@ public class ExamResultController implements Initializable {
         }
     }
 
+    // UPDATED: Smart navigation
     @FXML
     private void goToDashboard() {
-        SceneManager.getInstance().switchToDashboard();
+        System.out.println("DEBUG: Back button clicked - Context: " + sessionManager.getExamContextDescription());
+
+        if (sessionManager.wasLastExamFromRoom()) {
+            // For room exams, go directly to Rooms scene
+            System.out.println("DEBUG: Navigating directly to Rooms for room exam context");
+            SceneManager.getInstance().switchToRooms();
+        } else {
+            // For personal exams, go to dashboard
+            System.out.println("DEBUG: Using navigation history for personal exam context");
+//            if (SceneManager.getInstance().canGoBack()) {
+//                SceneManager.getInstance().goBack();
+//            } else {
+                SceneManager.getInstance().switchToDashboard();
+            //}
+        }
     }
 
+    // UPDATED: Smart "Take Another Exam" logic
     @FXML
     private void takeAnotherExam() {
-        SceneManager.getInstance().switchToExamSetup();
+        System.out.println("DEBUG: Take Another Exam clicked - Context: " + sessionManager.getExamContextDescription());
+
+        if (sessionManager.wasLastExamFromRoom()) {
+            // Last exam was from a room - show room exam dialog
+            handleRoomExamOption();
+        } else {
+            // Last exam was personal - go to exam setup
+            sessionManager.setLastExamMode(SessionManager.ExamMode.PERSONAL);
+            sessionManager.setLastActiveRoom(null);
+            SceneManager.getInstance().switchToExamSetup();
+        }
+    }
+
+    // NEW: Handle room exam option with smart navigation
+    private void handleRoomExamOption() {
+        Room lastRoom = sessionManager.getLastActiveRoom();
+
+        if (lastRoom != null) {
+            // Show room exam notification and navigate back to room
+            Alert info = new Alert(Alert.AlertType.INFORMATION);
+            info.setTitle("Room Exam");
+            info.setHeaderText("Return to " + lastRoom.getName());
+            info.setContentText("Returning to your room to take another exam with shared questions.");
+
+            Optional<ButtonType> result = info.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                // Navigate back to rooms scene
+                SceneManager.getInstance().switchToRooms();
+
+                // Schedule room exam dialog to show after scene loads
+                Platform.runLater(() -> {
+                    Timeline timeline = new Timeline(new KeyFrame(Duration.millis(500), e -> {
+                        showRoomExamAutoDialog();
+                    }));
+                    timeline.play();
+                });
+            }
+        } else {
+            // Fallback: no room context, go to rooms scene
+            showAlert("Room Context Lost",
+                    "Room context has been lost. Please navigate to a room and take an exam from there.",
+                    Alert.AlertType.WARNING);
+            SceneManager.getInstance().switchToRooms();
+        }
+    }
+
+    // NEW: Show room exam dialog automatically
+    private void showRoomExamAutoDialog() {
+        Alert info = new Alert(Alert.AlertType.INFORMATION);
+        info.setTitle("Ready for Another Room Exam");
+        info.setHeaderText("Back in " + sessionManager.getLastActiveRoom().getName());
+        info.setContentText("You're back in your room! Click 'Take Room Exam' to start another exam with shared questions.\n\n" +
+                "The system will remember your room exam preferences for a seamless experience.");
+
+        // Customize buttons
+        info.getButtonTypes().clear();
+        info.getButtonTypes().addAll(ButtonType.OK);
+
+        info.showAndWait();
+    }
+
+    // UPDATED: Enhanced exam context display
+    private void displayExamContext() {
+        if (sessionManager.wasLastExamFromRoom()) {
+            System.out.println("EXAM CONTEXT: Room exam from '" +
+                    sessionManager.getLastActiveRoom().getName() +
+                    "' (ID: " + sessionManager.getLastActiveRoom().getId() + ")");
+        } else {
+            System.out.println("EXAM CONTEXT: Personal exam");
+        }
     }
 }

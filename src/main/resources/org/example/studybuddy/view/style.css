@@ -1,0 +1,74 @@
+/* style.css - Modern Login Page Design for JavaFX */
+
+.root {
+    -fx-background-color: linear-gradient(to bottom right, #7aa4ca, #a7c4e4);
+    -fx-text-fill: white;
+    -fx-font-family: "Segoe UI", "Roboto", Arial, sans-serif;
+}
+
+.label {
+    -fx-text-fill: white;px;
+    -fx-font-weight: bold;
+}
+
+.text-field, .password-field {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-background-color: #fff;
+    -fx-border-color: #b0c4de;
+    -fx-border-width: 1;
+    -fx-padding: 8 12;
+    -fx-font-size: 16px;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #5c9ded;
+    -fx-background-color: #f7fbff;
+}
+
+.button {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-background-color: #5c9ded;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 24;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #4
+    -fx-font-size: 18178be;
+}
+
+.check-box {
+    -fx-font-size: 14px;
+    -fx-text-fill: white;
+}
+
+#messageLabel {
+    -fx-font-size: 14px;
+    -fx-text-fill: #d32f2f;
+    -fx-padding: 5 0 0 0;
+}
+
+
+.vbox {
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-background-radius: 20;
+    -fx-padding: 30 30 30 30;
+    -fx-opacity: 0;
+    -fx-transition: opacity 1s;
+    /* Animation will be triggered by adding a style class in controller */
+}
+
+.vbox.animated {
+    -fx-opacity: 1;
+}
+
+.hbox {
+    -fx-spacing: 15;
+    -fx-alignment: center;
+}

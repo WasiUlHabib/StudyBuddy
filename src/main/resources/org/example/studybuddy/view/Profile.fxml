@@ -13,11 +13,13 @@
             <Menu text="Navigation">
                 <MenuItem text="Dashboard" onAction="#goToDashboard" />
                 <MenuItem text="Question Bank" onAction="#goToQuestionBank" />
+                <MenuItem text="Rooms" onAction="#goToRooms" />
                 <MenuItem text="Profile" onAction="#goToProfile" />
                 <SeparatorMenuItem />
                 <MenuItem text="Logout" onAction="#handleLogout" />
             </Menu>
             <Menu text="Analytics">
+                <MenuItem text="Refresh Data" onAction="#refreshAnalytics" />
                 <MenuItem text="Export Performance Data" onAction="#exportData" />
                 <MenuItem text="Generate Report" onAction="#generateReport" />
             </Menu>
@@ -26,35 +28,66 @@
 
     <center>
         <ScrollPane fitToWidth="true">
-            <VBox spacing="25">
+            <VBox fx:id="profileContainer" spacing="25">
                 <padding>
                     <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
                 </padding>
 
+                <!-- Loading Indicator -->
+                <StackPane>
+                    <ProgressIndicator fx:id="loadingIndicator" visible="false" />
+                </StackPane>
+
                 <Label text="Performance Analytics" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
 
-                <!-- User Summary -->
-                <HBox spacing="20" alignment="CENTER">
-                    <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 20; -fx-background-radius: 10;" prefWidth="150">
-                        <Label text="Overall Accuracy" style="-fx-font-size: 14; -fx-text-fill: white;" />
-                        <Label fx:id="overallAccuracyLabel" text="0%" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: white;" />
-                    </VBox>
+                <!-- Enhanced User Summary -->
+                <VBox spacing="15">
+                    <!-- Primary Stats Row -->
+                    <HBox spacing="20" alignment="CENTER">
+                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 20; -fx-background-radius: 10;" prefWidth="150">
+                            <Label text="Overall Accuracy" style="-fx-font-size: 14; -fx-text-fill: white;" />
+                            <Label fx:id="overallAccuracyLabel" text="0%" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: white;" />
+                        </VBox>
 
-                    <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 20; -fx-background-radius: 10;" prefWidth="150">
-                        <Label text="Total Questions" style="-fx-font-size: 14; -fx-text-fill: white;" />
-                        <Label fx:id="totalQuestionsLabel" text="0" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: white;" />
-                    </VBox>
+                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 20; -fx-background-radius: 10;" prefWidth="150">
+                            <Label text="Total Questions" style="-fx-font-size: 14; -fx-text-fill: white;" />
+                            <Label fx:id="totalQuestionsLabel" text="0" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: white;" />
+                        </VBox>
 
-                    <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-padding: 20; -fx-background-radius: 10;" prefWidth="150">
-                        <Label text="Total Exams" style="-fx-font-size: 14; -fx-text-fill: white;" />
-                        <Label fx:id="totalExamsLabel" text="0" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: white;" />
-                    </VBox>
+                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-padding: 20; -fx-background-radius: 10;" prefWidth="150">
+                            <Label text="Total Exams" style="-fx-font-size: 14; -fx-text-fill: white;" />
+                            <Label fx:id="totalExamsLabel" text="0" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: white;" />
+                        </VBox>
 
-                    <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #f39c12; -fx-text-fill: white; -fx-padding: 20; -fx-background-radius: 10;" prefWidth="150">
-                        <Label text="Average Score" style="-fx-font-size: 14; -fx-text-fill: white;" />
-                        <Label fx:id="averageScoreLabel" text="0.0" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: white;" />
-                    </VBox>
-                </HBox>
+                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #f39c12; -fx-text-fill: white; -fx-padding: 20; -fx-background-radius: 10;" prefWidth="150">
+                            <Label text="Average Score" style="-fx-font-size: 14; -fx-text-fill: white;" />
+                            <Label fx:id="averageScoreLabel" text="0.0%" style="-fx-font-size: 28; -fx-font-weight: bold; -fx-text-fill: white;" />
+                        </VBox>
+                    </HBox>
+
+                    <!-- Enhanced Stats Row -->
+                    <HBox spacing="20" alignment="CENTER">
+                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #9b59b6; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10;" prefWidth="120">
+                            <Label text="Personal Exams" style="-fx-font-size: 12; -fx-text-fill: white;" />
+                            <Label fx:id="personalExamsLabel" text="0" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;" />
+                        </VBox>
+
+                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #1abc9c; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10;" prefWidth="120">
+                            <Label text="Room Exams" style="-fx-font-size: 12; -fx-text-fill: white;" />
+                            <Label fx:id="roomExamsLabel" text="0" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;" />
+                        </VBox>
+
+                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #e67e22; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10;" prefWidth="120">
+                            <Label text="Highest Score" style="-fx-font-size: 12; -fx-text-fill: white;" />
+                            <Label fx:id="highestScoreLabel" text="0.0%" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;" />
+                        </VBox>
+
+                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #34495e; -fx-text-fill: white; -fx-padding: 15; -fx-background-radius: 10;" prefWidth="120">
+                            <Label text="Study Streak" style="-fx-font-size: 12; -fx-text-fill: white;" />
+                            <Label fx:id="studyStreakLabel" text="0 days" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;" />
+                        </VBox>
+                    </HBox>
+                </VBox>
 
                 <!-- Performance Trend Chart -->
                 <VBox spacing="10">
@@ -69,29 +102,47 @@
                     </LineChart>
                 </VBox>
 
-                <!-- Topic Performance -->
-                <VBox spacing="15">
-                    <Label text="Topic-wise Performance" style="-fx-font-size: 18; -fx-font-weight: bold;" />
+                <!-- Topic Performance and Activity -->
+                <HBox spacing="20">
+                    <!-- Left Column: Topic Performance -->
+                    <VBox spacing="15" HBox.hgrow="ALWAYS">
+                        <Label text="Topic-wise Performance" style="-fx-font-size: 18; -fx-font-weight: bold;" />
 
-                    <HBox spacing="20">
-                        <!-- Strengths -->
-                        <VBox spacing="10" style="-fx-background-color: #d5f4e6; -fx-padding: 15; -fx-background-radius: 10;" HBox.hgrow="ALWAYS">
-                            <Label text="Your Strengths" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #27ae60;" />
-                            <VBox fx:id="strengthsContainer" spacing="8" />
+                        <HBox spacing="20">
+                            <!-- Strengths -->
+                            <VBox spacing="10" style="-fx-background-color: #d5f4e6; -fx-padding: 15; -fx-background-radius: 10;" HBox.hgrow="ALWAYS">
+                                <Label text="Your Strengths" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #27ae60;" />
+                                <VBox fx:id="strengthsContainer" spacing="8" />
+                            </VBox>
+
+                            <!-- Weaknesses -->
+                            <VBox spacing="10" style="-fx-background-color: #fadbd8; -fx-padding: 15; -fx-background-radius: 10;" HBox.hgrow="ALWAYS">
+                                <Label text="Areas for Improvement" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #e74c3c;" />
+                                <VBox fx:id="weaknessesContainer" spacing="8" />
+                            </VBox>
+                        </HBox>
+                    </VBox>
+
+                    <!-- Activity and Achievements Side by Side -->
+                    <HBox spacing="15">
+                        <!-- Left Side: Recent Activity (Larger) -->
+                        <VBox spacing="10" HBox.hgrow="ALWAYS" prefWidth="500" style="-fx-background-color: #f8f9fa; -fx-padding: 15; -fx-background-radius: 10;">
+                            <Label text="Recent Activity" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+                            <ListView fx:id="recentActivityList" prefHeight="200" VBox.vgrow="ALWAYS" />
                         </VBox>
 
-                        <!-- Weaknesses -->
-                        <VBox spacing="10" style="-fx-background-color: #fadbd8; -fx-padding: 15; -fx-background-radius: 10;" HBox.hgrow="ALWAYS">
-                            <Label text="Areas for Improvement" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #e74c3c;" />
-                            <VBox fx:id="weaknessesContainer" spacing="8" />
+                        <!-- Right Side: Achievements -->
+                        <VBox spacing="10" prefWidth="300" style="-fx-background-color: #fff3cd; -fx-padding: 15; -fx-background-radius: 10;">
+                            <Label text="Achievements 🏆" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #856404;" />
+                            <ListView fx:id="achievementsList" prefHeight="200" />
                         </VBox>
                     </HBox>
-                </VBox>
+                </HBox>
 
                 <!-- Topic Performance Table -->
                 <VBox spacing="10">
                     <Label text="Detailed Topic Analysis" style="-fx-font-size: 18; -fx-font-weight: bold;" />
-                    <TableView fx:id="topicPerformanceTable" prefHeight="300">
+                    <TableView fx:id="topicPerformanceTable" prefHeight="250">
                         <columns>
                             <TableColumn fx:id="topicColumn" text="Topic" prefWidth="200" />
                             <TableColumn fx:id="attemptedColumn" text="Questions Attempted" prefWidth="150" />
@@ -105,26 +156,33 @@
                 <!-- Recent Exam History -->
                 <VBox spacing="10">
                     <Label text="Recent Exam History" style="-fx-font-size: 18; -fx-font-weight: bold;" />
-                    <TableView fx:id="examHistoryTable" prefHeight="250">
+                    <TableView fx:id="examHistoryTable" prefHeight="300">
                         <columns>
-                            <TableColumn fx:id="examDateColumn" text="Date" prefWidth="150" />
-                            <TableColumn fx:id="examScoreColumn" text="Score" prefWidth="100" />
-                            <TableColumn fx:id="examAccuracyColumn" text="Accuracy" prefWidth="100" />
-                            <TableColumn fx:id="examQuestionsColumn" text="Questions" prefWidth="100" />
-                            <TableColumn fx:id="examTimeColumn" text="Time Taken" prefWidth="120" />
+                            <TableColumn fx:id="examDateColumn" text="Date" prefWidth="120" />
+                            <TableColumn fx:id="examNameColumn" text="Exam Name" prefWidth="180" />
+                            <TableColumn fx:id="examScoreColumn" text="Score" prefWidth="80" />
+                            <TableColumn fx:id="examAccuracyColumn" text="Accuracy" prefWidth="80" />
+                            <TableColumn fx:id="examQuestionsColumn" text="Questions" prefWidth="80" />
+                            <TableColumn fx:id="examTimeColumn" text="Time Taken" prefWidth="100" />
+                            <TableColumn fx:id="examTypeColumn" text="Type" prefWidth="100" />
+                            <TableColumn fx:id="actionColumn" text="Actions" prefWidth="100" />
                         </columns>
                     </TableView>
                 </VBox>
 
                 <!-- Action Buttons -->
                 <HBox spacing="15" alignment="CENTER">
-                    <Button fx:id="refreshDataButton" text="Refresh Data" onAction="#refreshAnalytics"
+                    <Button fx:id="refreshDataButton" text="🔄 Refresh Data" onAction="#refreshAnalytics"
                             style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14;"
-                            prefWidth="120" prefHeight="35" />
-                    <Button fx:id="exportReportButton" text="Export Report" onAction="#exportReport"
+                            prefWidth="140" prefHeight="40" />
+                    <Button fx:id="exportReportButton" text="📄 Export Report" onAction="#exportReport"
                             style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 14;"
-                            prefWidth="120" prefHeight="35" />
+                            prefWidth="140" prefHeight="40" />
                 </HBox>
+
+                <!-- Welcome Container for New Users -->
+                <VBox fx:id="welcomeContainer" spacing="20" alignment="CENTER" visible="false" />
+
             </VBox>
         </ScrollPane>
     </center>

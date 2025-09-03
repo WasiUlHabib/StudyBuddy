@@ -2,6 +2,7 @@ package org.example.studybuddy;
 
 import org.example.studybuddy.database.DatabaseManager;
 import org.example.studybuddy.util.SceneManager;
+
 import javafx.application.Application;
 import javafx.stage.Stage;
 
@@ -20,7 +21,8 @@ public class StudyBuddyApp extends Application {
             SceneManager.getInstance().switchToLogin();
 
             primaryStage.setTitle("StudyBuddy - Quiz Application");
-            primaryStage.setResizable(false);
+            primaryStage.setResizable(true);
+            primaryStage.setMaximized(true); // Make window full screen by default
             primaryStage.show();
 
         } catch (Exception e) {

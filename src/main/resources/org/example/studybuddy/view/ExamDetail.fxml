@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.text.Text?>
+
+<VBox spacing="10" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="org.example.studybuddy.controller.ExamDetailController">
+    
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <!-- Header Section -->
+    <HBox spacing="20" alignment="CENTER">
+        <VBox alignment="CENTER_LEFT">
+            <Label fx:id="examNameLabel" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+            <Label fx:id="examDateLabel" style="-fx-font-size: 14px;"/>
+        </VBox>
+        <VBox alignment="CENTER_RIGHT">
+            <Label fx:id="scoreLabel" style="-fx-font-size: 18px;"/>
+            <Label fx:id="timeLabel" style="-fx-font-size: 14px;"/>
+        </VBox>
+    </HBox>
+
+    <!-- Summary Section -->
+    <GridPane hgap="10" vgap="5">
+        <columnConstraints>
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="100"/>
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="100"/>
+        </columnConstraints>
+        
+        <Label text="Total Questions:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <Label fx:id="totalQuestionsLabel" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+        
+        <Label text="Correct Answers:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <Label fx:id="correctAnswersLabel" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+        
+        <Label text="Wrong Answers:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <Label fx:id="wrongAnswersLabel" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+        
+        <Label text="Unanswered:" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+        <Label fx:id="unansweredLabel" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+    </GridPane>
+
+    <!-- Questions Table -->
+    <TableView fx:id="questionsTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="questionNumberColumn" text="#" prefWidth="50"/>
+            <TableColumn fx:id="questionTextColumn" text="Question" prefWidth="400"/>
+            <TableColumn fx:id="yourAnswerColumn" text="Your Answer" prefWidth="150"/>
+            <TableColumn fx:id="correctAnswerColumn" text="Correct Answer" prefWidth="150"/>
+            <TableColumn fx:id="resultColumn" text="Result" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <!-- Bottom Buttons -->
+    <HBox spacing="10" alignment="CENTER">
+        <Button text="Export Report" onAction="#handleExport"/>
+        <Button text="Back to Profile" onAction="#handleBack"/>
+    </HBox>
+    
+</VBox>

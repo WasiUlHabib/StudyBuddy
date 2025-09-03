@@ -31,9 +31,12 @@ import org.example.studybuddy.model.RoomMessage;
 import org.example.studybuddy.model.Question;
 import org.example.studybuddy.model.Topic;
 import org.example.studybuddy.model.Subtopic;
+import org.example.studybuddy.model.Exam;
+import org.example.studybuddy.controller.ExamController;
 import org.example.studybuddy.util.ChatSimulator;
 import org.example.studybuddy.util.SceneManager;
 import org.example.studybuddy.util.SessionManager;
+import org.example.studybuddy.util.ExamSettingsDialog;
 
 public class RoomsController implements Initializable {
 
@@ -51,13 +54,14 @@ public class RoomsController implements Initializable {
     @FXML private Label activeRoomDescriptionLabel;
     @FXML private Button leaveRoomButton;
     @FXML private TextArea chatArea;
-    @FXML private TextField chatMessageField; // This is your message input field
+    @FXML private TextField chatMessageField;
     @FXML private Button sendMessageButton;
     @FXML private ListView<String> sharedQuestionsListView;
     @FXML private Button shareQuestionsButton;
     @FXML private ListView<RoomParticipant> participantsListView;
     @FXML private Label participantCountLabel;
     @FXML private Button inviteParticipantsButton;
+    @FXML private Button takeRoomExamButton;
 
     private SessionManager sessionManager = SessionManager.getInstance();
     private RoomDAO roomDAO = new RoomDAO();
@@ -67,14 +71,12 @@ public class RoomsController implements Initializable {
     private ObservableList<RoomMessage> chatMessages = FXCollections.observableArrayList();
     private ChatSimulator chatSimulator = new ChatSimulator();
 
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupRoomsList();
         setupParticipantsList();
         setupSharedQuestionsList();
         loadUserRooms();
-
     }
 
     private void setupSharedQuestionsList() {
@@ -200,9 +202,7 @@ public class RoomsController implements Initializable {
         }
     }
 
-    // Enhanced enterRoom method with real-time chat connection
     private void enterRoom(Room room) {
-
         currentActiveRoom = room;
 
         // Update active room tab
@@ -227,7 +227,6 @@ public class RoomsController implements Initializable {
         roomDAO.addSystemMessage(room.getId(), sessionManager.getCurrentUser().getUsername() + " joined the room");
     }
 
-    // NEW: Load shared questions for all room members
     private void loadRoomSharedQuestions() {
         if (currentActiveRoom == null) return;
 
@@ -235,8 +234,9 @@ public class RoomsController implements Initializable {
         ObservableList<String> questionSummaries = FXCollections.observableArrayList();
 
         for (Question q : roomQuestions) {
+            String sharedByUsername = q.getSharedByUsername() != null ? q.getSharedByUsername() : "Unknown";
             String summary = String.format("[%s] %s",
-                    q.getSharedByUsername(),
+                    sharedByUsername,
                     q.getQuestionText().length() > 50 ?
                             q.getQuestionText().substring(0, 50) + "..." :
                             q.getQuestionText());
@@ -246,7 +246,113 @@ public class RoomsController implements Initializable {
         sharedQuestionsListView.setItems(questionSummaries);
     }
 
-    // New method to setup chat functionality
+    @FXML
+    private void handleTakeRoomExam() {
+        if (currentActiveRoom == null) {
+            showMessage("No active room selected.", true);
+            return;
+        }
+
+        // Get shared questions from the room
+        List<Question> sharedQuestions = roomDAO.getRoomSharedQuestions(currentActiveRoom.getId());
+
+        if (sharedQuestions.isEmpty()) {
+            showMessage("No shared questions available in this room. Members need to share questions first.", true);
+            return;
+        }
+
+        // Show exam settings dialog
+        Optional<ExamSettingsDialog.ExamSettings> settingsResult =
+                ExamSettingsDialog.showDialog(sharedQuestions.size());
+
+        if (!settingsResult.isPresent()) {
+            // User cancelled the dialog
+            return;
+        }
+
+        ExamSettingsDialog.ExamSettings settings = settingsResult.get();
+
+        // Validate that we have enough questions
+        if (settings.getNumberOfQuestions() > sharedQuestions.size()) {
+            showMessage("Not enough questions available. Requested: " + settings.getNumberOfQuestions() +
+                    ", Available: " + sharedQuestions.size(), true);
+            return;
+        }
+
+        // Randomly select the specified number of questions
+        List<Question> selectedQuestions = selectRandomQuestions(sharedQuestions, settings.getNumberOfQuestions());
+
+        // Final confirmation with selected settings
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Start Room Exam");
+        confirmAlert.setHeaderText("Confirm Exam Settings");
+        confirmAlert.setContentText(String.format(
+                "Room: %s\n" +
+                        "Questions: %d (from %d available)\n" +
+                        "Time Limit: %d minutes\n\n" +
+                        "Ready to start your customized exam?",
+                currentActiveRoom.getName(),
+                settings.getNumberOfQuestions(),
+                sharedQuestions.size(),
+                settings.getTimeInMinutes()
+        ));
+
+        Optional<ButtonType> confirmation = confirmAlert.showAndWait();
+        if (confirmation.isPresent() && confirmation.get() == ButtonType.OK) {
+            startRoomExam(selectedQuestions, settings.getTimeInMinutes());
+        }
+    }
+
+    // UPDATED: Enhanced with exam type tracking for smart navigation
+    private void startRoomExam(List<Question> selectedQuestions, int timeInMinutes) {
+        try {
+            // NEW: Set exam context in SessionManager for smart navigation
+            sessionManager.setLastExamMode(SessionManager.ExamMode.ROOM);
+            sessionManager.setLastActiveRoom(currentActiveRoom);
+            System.out.println("DEBUG: Room exam context set - Room: " + currentActiveRoom.getName() +
+                    ", Questions: " + selectedQuestions.size() + ", Time: " + timeInMinutes + " min");
+
+            // Create a customized exam object for room-based exam
+            Exam roomExam = new Exam();
+            roomExam.setId(-1); // Special ID to indicate room exam
+            roomExam.setName(String.format("%s - Custom Exam (%d questions, %d min)",
+                    currentActiveRoom.getName(),
+                    selectedQuestions.size(),
+                    timeInMinutes));
+            roomExam.setTimeLimit(timeInMinutes);
+            roomExam.setNegativeMarks(false);
+
+            // Pass data to ExamController
+            ExamController.setRoomExamData(roomExam, selectedQuestions, currentActiveRoom);
+
+            // Switch to exam scene
+            SceneManager.getInstance().switchToExam();
+
+            // Add system message about exam start
+            String startMessage = String.format("%s started a custom exam (%d questions, %d minutes)",
+                    sessionManager.getCurrentUser().getUsername(),
+                    selectedQuestions.size(),
+                    timeInMinutes);
+            roomDAO.addSystemMessage(currentActiveRoom.getId(), startMessage);
+
+        } catch (Exception e) {
+            System.err.println("Error starting room exam: " + e.getMessage());
+            e.printStackTrace();
+            showMessage("Failed to start room exam. Please try again.", true);
+        }
+    }
+
+    // Helper method to randomly select questions
+    private List<Question> selectRandomQuestions(List<Question> allQuestions, int count) {
+        if (count >= allQuestions.size()) {
+            return new ArrayList<>(allQuestions);
+        }
+
+        List<Question> shuffled = new ArrayList<>(allQuestions);
+        java.util.Collections.shuffle(shuffled);
+        return shuffled.subList(0, count);
+    }
+
     private void setupRoomChat() {
         if (currentActiveRoom == null) return;
 
@@ -270,7 +376,6 @@ public class RoomsController implements Initializable {
         });
     }
 
-    // Load recent chat messages
     private void loadRecentMessages() {
         if (currentActiveRoom == null) return;
 
@@ -278,15 +383,13 @@ public class RoomsController implements Initializable {
         chatMessages.setAll(recentMessages);
     }
 
-    // Handle incoming messages (from simulation or real network)
     private void handleIncomingMessage(RoomMessage message) {
         Platform.runLater(() -> {
             chatMessages.add(message);
-            roomDAO.saveMessage(message); // Save to database
+            roomDAO.saveMessage(message);
         });
     }
 
-    // Update chat display
     private void updateChatDisplay() {
         StringBuilder chatContent = new StringBuilder();
         for (RoomMessage message : chatMessages) {
@@ -308,7 +411,6 @@ public class RoomsController implements Initializable {
         participantCountLabel.setText(participants.size() + " members");
     }
 
-    // Enhanced leave room method
     @FXML
     private void handleLeaveRoom() {
         if (currentActiveRoom == null) return;
@@ -337,6 +439,14 @@ public class RoomsController implements Initializable {
                     chatMessages.clear();
                     chatArea.clear();
                     sharedQuestionsListView.getItems().clear();
+
+                    // NEW: Reset room context when leaving room
+                    if (sessionManager.getLastActiveRoom() != null &&
+                            sessionManager.getLastActiveRoom().getId() == currentActiveRoom.getId()) {
+                        sessionManager.setLastExamMode(SessionManager.ExamMode.PERSONAL);
+                        sessionManager.setLastActiveRoom(null);
+                        System.out.println("DEBUG: Exam context reset after leaving room");
+                    }
 
                     // Disable active room tab and switch back to My Rooms
                     activeRoomTab.setDisable(true);
@@ -372,9 +482,6 @@ public class RoomsController implements Initializable {
 
             // Clear input
             chatMessageField.clear();
-
-            // In a real application, this would send to other connected users
-            // For now, we just save it locally
         }
     }
 
@@ -450,7 +557,6 @@ public class RoomsController implements Initializable {
         });
     }
 
-    // Enhanced question sharing for all room members
     private void shareQuestionsWithAllMembers(List<Question> questions) {
         if (currentActiveRoom == null) return;
 
@@ -483,8 +589,6 @@ public class RoomsController implements Initializable {
         }
     }
 
-    // REMOVED: Old shareQuestionsWithRoom method - replaced with shareQuestionsWithAllMembers
-
     @FXML
     private void handleInviteParticipants() {
         if (currentActiveRoom == null) return;
@@ -512,8 +616,12 @@ public class RoomsController implements Initializable {
         delay.play();
     }
 
+    // UPDATED: Clear exam context when explicitly navigating away from rooms
     @FXML
     private void goToDashboard() {
+        // Clear room context when explicitly going to dashboard
+        sessionManager.setLastExamMode(SessionManager.ExamMode.PERSONAL);
+        sessionManager.setLastActiveRoom(null);
         SceneManager.getInstance().switchToDashboard();
     }
 
@@ -534,7 +642,7 @@ public class RoomsController implements Initializable {
 
     @FXML
     private void handleLogout() {
-        sessionManager.logout();
+        sessionManager.logout(); // This will clear exam context automatically
         SceneManager.getInstance().switchToLogin();
     }
 }

@@ -23,7 +23,7 @@
 
                 <!-- Exam Info -->
                 <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 10;">
-                    <Label fx:id="examNameLabel" text="Exam Name" style="-fx-font-size: 20; -fx-font-weight: bold;" />
+                    <Label fx:id="examNameLabel" text="Exam Results" style="-fx-font-size: 20; -fx-font-weight: bold;" />
                     <Label fx:id="completedDateLabel" text="Completed: " style="-fx-font-size: 14; -fx-text-fill: #7f8c8d;" />
                 </VBox>
 
@@ -64,17 +64,22 @@
                     </ScrollPane>
                 </VBox>
 
-                <!-- Action Buttons -->
+                <!-- UPDATED: Smart Navigation Action Buttons -->
                 <HBox spacing="20" alignment="CENTER">
-                    <Button fx:id="dashboardButton" text="Back to Dashboard" onAction="#goToDashboard"
-                            style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14;"
-                            prefWidth="150" prefHeight="40" />
+                    <!-- Smart Back Button - Text updated dynamically by controller -->
+                    <Button fx:id="dashboardButton" text="← Back" onAction="#goToDashboard"
+                            style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-font-size: 14;"
+                            prefWidth="160" prefHeight="40" />
+
+                    <!-- Smart Take Another Exam Button - Text updated dynamically by controller -->
                     <Button fx:id="takeAnotherButton" text="Take Another Exam" onAction="#takeAnotherExam"
                             style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 14;"
-                            prefWidth="150" prefHeight="40" />
-                    <Button fx:id="downloadPdfButton" text="Download PDF" onAction="#handleDownloadPdf"
+                            prefWidth="180" prefHeight="40" />
+
+                    <!-- PDF Download Button -->
+                    <Button fx:id="downloadPdfButton" text="📄 Download PDF" onAction="#handleDownloadPdf"
                             style="-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-size: 14;"
-                            prefWidth="150" prefHeight="40" />
+                            prefWidth="160" prefHeight="40" />
                 </HBox>
             </VBox>
         </ScrollPane>

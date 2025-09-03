@@ -420,6 +420,47 @@ public class QuestionDAO {
         System.out.println("Sample question bank data added successfully!");
     }
 
+    public Subtopic getSubtopicById(int subtopicId) {
+        String sql = "SELECT * FROM subtopics WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, subtopicId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Subtopic(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getInt("topic_id"),
+                        rs.getString("description"),
+                        rs.getInt("created_by"),
+                        rs.getTimestamp("created_at").toLocalDateTime()
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
+    public String getTopicNameForQuestion(int questionId) {
+        String sql = """
+            SELECT t.name 
+            FROM topics t 
+            JOIN subtopics s ON t.id = s.topic_id 
+            JOIN questions q ON s.id = q.subtopic_id 
+            WHERE q.id = ?
+        """;
 
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, questionId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("name");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "Unknown";
+    }
 }

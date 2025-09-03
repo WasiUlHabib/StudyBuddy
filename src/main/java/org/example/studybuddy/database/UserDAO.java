@@ -26,9 +26,7 @@ public class UserDAO {
         }
 
         String hashedPassword = passwordEncoder.encode(password);
-
         String insertUserSQL = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
-        String insertStatsSQL = "INSERT INTO user_stats (user_id) VALUES (?)";
 
         try {
             connection.setAutoCommit(false);
@@ -41,21 +39,6 @@ public class UserDAO {
                 if (affectedRows == 0) {
                     connection.rollback();
                     return false;
-                }
-
-                int userId;
-                try (ResultSet generatedKeys = userStmt.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        userId = generatedKeys.getInt(1);
-                    } else {
-                        connection.rollback();
-                        return false;
-                    }
-                }
-
-                try (PreparedStatement statsStmt = connection.prepareStatement(insertStatsSQL)) {
-                    statsStmt.setInt(1, userId);
-                    statsStmt.executeUpdate();
                 }
 
                 connection.commit();
@@ -111,7 +94,6 @@ public class UserDAO {
                     System.out.println("User found in database: " + username);
                     String storedHash = rs.getString("password_hash");
 
-                    // Verify password - THIS LINE SHOULD NOW WORK
                     boolean passwordMatch = passwordEncoder.matches(password, storedHash);
                     System.out.println("Password match result: " + passwordMatch);
 
@@ -131,30 +113,58 @@ public class UserDAO {
             e.printStackTrace();
         }
 
-        return null; // Login failed
+        return null;
     }
 
-    // Get user statistics
+    // UPDATED: Get real user statistics from exam logs
     public UserStats getUserStats(int userId) {
-        String sql = "SELECT * FROM user_stats WHERE user_id = ?";
+        String sql = """
+            SELECT 
+                COUNT(*) as total_exams,
+                SUM(total_questions) as total_questions_attempted,
+                SUM(correct_answers) as total_correct,
+                SUM(wrong_answers) as total_wrong,
+                SUM(unanswered) as total_unanswered,
+                AVG(percentage) as average_percentage,
+                MAX(percentage) as highest_score,
+                AVG(time_taken) as average_time,
+                COUNT(CASE WHEN exam_type = 'personal' OR exam_type IS NULL THEN 1 END) as personal_exams,
+                COUNT(CASE WHEN exam_type = 'room' THEN 1 END) as room_exams
+            FROM exam_logs 
+            WHERE user_id = ?
+        """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return new UserStats(
-                            rs.getInt("user_id"),
-                            rs.getInt("questions_attempted"),
-                            rs.getInt("questions_solved"),
-                            rs.getInt("exams_taken")
-                    );
+                    UserStats stats = new UserStats();
+                    stats.setUserId(userId);
+                    stats.setTotalExamsCompleted(rs.getInt("total_exams"));
+                    stats.setTotalQuestionsAttempted(rs.getInt("total_questions_attempted"));
+                    stats.setTotalCorrectAnswers(rs.getInt("total_correct"));
+                    stats.setTotalWrongAnswers(rs.getInt("total_wrong"));
+                    stats.setTotalUnanswered(rs.getInt("total_unanswered"));
+                    stats.setAverageScore(rs.getDouble("average_percentage"));
+                    stats.setHighestScore(rs.getDouble("highest_score"));
+                    stats.setAverageTimePerExam(rs.getInt("average_time"));
+                    stats.setPersonalExams(rs.getInt("personal_exams"));
+                    stats.setRoomExams(rs.getInt("room_exams"));
+
+                    System.out.println("DEBUG: Real user stats loaded - Total exams: " +
+                            stats.getTotalExamsCompleted() + ", Accuracy: " +
+                            String.format("%.1f%%", stats.getOverallAccuracy()));
+
+                    return stats;
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return new UserStats(userId);
+        // Return empty stats for new users (no fake data!)
+        System.out.println("DEBUG: New user with no exam history - returning empty stats");
+        return new UserStats(); // Default constructor with zeros
     }
 
     // Get user by ID
@@ -180,73 +190,23 @@ public class UserDAO {
         return null;
     }
 
-    // Update user statistics (call this when user completes questions/exams)
-    public boolean updateUserStats(int userId, int questionsAttempted, int questionsSolved, int examsTaken) {
-        String updateStatsSQL = "UPDATE user_stats SET questions_attempted = questions_attempted + ?, questions_solved = questions_solved + ?, exams_taken = exams_taken + ? WHERE user_id = ?";
-
-        try (PreparedStatement stmt = connection.prepareStatement(updateStatsSQL)) {
-            stmt.setInt(1, questionsAttempted);
-            stmt.setInt(2, questionsSolved);
-            stmt.setInt(3, examsTaken);
-            stmt.setInt(4, userId);
-
-            int rowsAffected = stmt.executeUpdate();
-
-            if (rowsAffected > 0) {
-                // Also update daily stats
-                updateDailyStats(userId, questionsAttempted, questionsSolved, examsTaken);
-                return true;
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    // Update daily statistics for performance graphs
-    public void updateDailyStats(int userId, int questionsAttempted, int questionsSolved, int examsTaken) {
-        LocalDate today = LocalDate.now();
-
-        String insertOrUpdateSQL = """
-        INSERT INTO daily_stats (user_id, date, questions_attempted, questions_solved, exams_taken, accuracy_percentage)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(user_id, date) DO UPDATE SET
-            questions_attempted = questions_attempted + excluded.questions_attempted,
-            questions_solved = questions_solved + excluded.questions_solved,
-            exams_taken = exams_taken + excluded.exams_taken,
-            accuracy_percentage = CASE 
-                WHEN (questions_attempted + excluded.questions_attempted) > 0 
-                THEN ((questions_solved + excluded.questions_solved) * 100.0) / (questions_attempted + excluded.questions_attempted)
-                ELSE 0.0 
-            END
-    """;
-
-        try (PreparedStatement stmt = connection.prepareStatement(insertOrUpdateSQL)) {
-            stmt.setInt(1, userId);
-            stmt.setString(2, today.toString());
-            stmt.setInt(3, questionsAttempted);
-            stmt.setInt(4, questionsSolved);
-            stmt.setInt(5, examsTaken);
-            stmt.setDouble(6, questionsAttempted > 0 ? (double) questionsSolved / questionsAttempted * 100 : 0.0);
-
-            stmt.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Get daily statistics for performance graphs
+    // NEW: Get daily statistics from real exam data (last N days)
     public List<DailyStat> getDailyStats(int userId, int daysBack) {
         List<DailyStat> dailyStats = new ArrayList<>();
 
         String sql = """
-        SELECT * FROM daily_stats 
-        WHERE user_id = ? AND date >= date('now', '-' || ? || ' days')
-        ORDER BY date ASC
-    """;
+            SELECT 
+                DATE(completed_at) as exam_date,
+                COUNT(*) as exams_taken,
+                SUM(total_questions) as questions_attempted,
+                SUM(correct_answers) as questions_solved,
+                AVG(percentage) as accuracy_percentage
+            FROM exam_logs 
+            WHERE user_id = ? 
+            AND completed_at >= datetime('now', '-' || ? || ' days')
+            GROUP BY DATE(completed_at)
+            ORDER BY exam_date ASC
+        """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, userId);
@@ -255,12 +215,11 @@ public class UserDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     DailyStat stat = new DailyStat();
-                    stat.setId(rs.getInt("id"));
-                    stat.setUserId(rs.getInt("user_id"));
-                    stat.setDate(LocalDate.parse(rs.getString("date")));
+                    stat.setUserId(userId);
+                    stat.setDate(LocalDate.parse(rs.getString("exam_date")));
+                    stat.setExamsTaken(rs.getInt("exams_taken"));
                     stat.setQuestionsAttempted(rs.getInt("questions_attempted"));
                     stat.setQuestionsSolved(rs.getInt("questions_solved"));
-                    stat.setExamsTaken(rs.getInt("exams_taken"));
                     stat.setAccuracyPercentage(rs.getDouble("accuracy_percentage"));
 
                     dailyStats.add(stat);
@@ -273,31 +232,176 @@ public class UserDAO {
         return dailyStats;
     }
 
-    // Add some test data for demonstration (temporary method)
-    public void addTestData(int userId) {
-        // Add some sample performance data for the last 7 days
-        for (int i = 7; i >= 1; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            int attempted = (int) (Math.random() * 10) + 5; // 5-15 questions
-            int solved = (int) (attempted * (0.6 + Math.random() * 0.3)); // 60-90% accuracy
+    // NEW: Get user's recent exam activity (for activity feed)
+    public List<String> getRecentActivity(int userId, int limit) {
+        List<String> activities = new ArrayList<>();
 
-            String sql = "INSERT OR REPLACE INTO daily_stats (user_id, date, questions_attempted, questions_solved, exams_taken, accuracy_percentage) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = """
+            SELECT exam_name, percentage, correct_answers, total_questions, 
+                   exam_type, completed_at
+            FROM exam_logs 
+            WHERE user_id = ? 
+            ORDER BY completed_at DESC 
+            LIMIT ?
+        """;
 
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-                stmt.setInt(1, userId);
-                stmt.setString(2, date.toString());
-                stmt.setInt(3, attempted);
-                stmt.setInt(4, solved);
-                stmt.setInt(5, i % 3 == 0 ? 1 : 0); // Exam every 3rd day
-                stmt.setDouble(6, attempted > 0 ? (double) solved / attempted * 100 : 0.0);
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, limit);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String examType = rs.getString("exam_type");
+                    String typeIcon = "room".equals(examType) ? "🏠" : "📝";
 
-                stmt.executeUpdate();
-            } catch (SQLException e) {
-                e.printStackTrace();
+                    String activity = String.format("%s %s - %.1f%% (%d/%d correct) - %s",
+                            typeIcon,
+                            rs.getString("exam_name"),
+                            rs.getDouble("percentage"),
+                            rs.getInt("correct_answers"),
+                            rs.getInt("total_questions"),
+                            rs.getTimestamp("completed_at").toLocalDateTime().toLocalDate()
+                    );
+                    activities.add(activity);
+                }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
-        // Also update overall user stats
-        updateUserStats(userId, 50, 35, 3); // Sample total stats
+        return activities;
     }
+
+    // NEW: Get study streak (consecutive days with exam activity)
+    public int getStudyStreak(int userId) {
+        String sql = """
+            SELECT COUNT(*) as streak
+            FROM (
+                SELECT DATE(completed_at) as exam_date
+                FROM exam_logs 
+                WHERE user_id = ?
+                AND DATE(completed_at) >= (
+                    SELECT DATE(completed_at)
+                    FROM exam_logs 
+                    WHERE user_id = ?
+                    ORDER BY completed_at DESC 
+                    LIMIT 1
+                ) - (
+                    SELECT COUNT(DISTINCT DATE(completed_at)) - 1
+                    FROM exam_logs el1
+                    WHERE user_id = ?
+                    AND NOT EXISTS (
+                        SELECT 1 FROM exam_logs el2 
+                        WHERE el2.user_id = ?
+                        AND DATE(el2.completed_at) = DATE(el1.completed_at) - 1
+                    )
+                )
+                GROUP BY DATE(completed_at)
+                ORDER BY exam_date DESC
+            )
+        """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, userId);
+            stmt.setInt(3, userId);
+            stmt.setInt(4, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("streak");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    // NEW: Get performance trends (improvement over time)
+    public boolean isImproving(int userId) {
+        String sql = """
+            SELECT 
+                AVG(CASE WHEN row_num <= total_rows/2 THEN percentage END) as first_half_avg,
+                AVG(CASE WHEN row_num > total_rows/2 THEN percentage END) as second_half_avg
+            FROM (
+                SELECT percentage, 
+                       ROW_NUMBER() OVER (ORDER BY completed_at) as row_num,
+                       COUNT(*) OVER () as total_rows
+                FROM exam_logs 
+                WHERE user_id = ?
+            )
+            WHERE total_rows >= 4
+        """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    double firstHalf = rs.getDouble("first_half_avg");
+                    double secondHalf = rs.getDouble("second_half_avg");
+                    return secondHalf > firstHalf;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false; // Not enough data or error
+    }
+
+    // NEW: Get user's best subjects (by exam names)
+    public List<String> getBestSubjects(int userId, int limit) {
+        List<String> bestSubjects = new ArrayList<>();
+
+        String sql = """
+            SELECT exam_name, AVG(percentage) as avg_score, COUNT(*) as attempts
+            FROM exam_logs 
+            WHERE user_id = ?
+            GROUP BY exam_name
+            HAVING attempts >= 2
+            ORDER BY avg_score DESC, attempts DESC
+            LIMIT ?
+        """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, limit);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String subject = String.format("%s (%.1f%% avg, %d attempts)",
+                            rs.getString("exam_name"),
+                            rs.getDouble("avg_score"),
+                            rs.getInt("attempts")
+                    );
+                    bestSubjects.add(subject);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return bestSubjects;
+    }
+
+    // NEW: Check if user has any exam history (for UI decisions)
+    public boolean hasExamHistory(int userId) {
+        String sql = "SELECT COUNT(*) FROM exam_logs WHERE user_id = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    // REMOVED: addTestData method - no more simulated data!
+    // REMOVED: updateUserStats method - stats come directly from exam_logs
+    // REMOVED: updateDailyStats method - calculated dynamically from exam_logs
 }
