@@ -1,10 +1,6 @@
 package org.example.studybuddy.controller;
 
-import org.example.studybuddy.database.RoomDAO;
-import org.example.studybuddy.model.Room;
-import org.example.studybuddy.model.RoomParticipant;
-import org.example.studybuddy.util.SceneManager;
-import org.example.studybuddy.util.SessionManager;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -13,6 +9,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
@@ -20,8 +17,23 @@ import javafx.util.Callback;
 import java.io.IOException;
 import java.net.URL;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
+
+import org.example.studybuddy.database.RoomDAO;
+import org.example.studybuddy.database.QuestionDAO;
+import org.example.studybuddy.model.Room;
+import org.example.studybuddy.model.RoomParticipant;
+import org.example.studybuddy.model.RoomMessage;
+import org.example.studybuddy.model.Question;
+import org.example.studybuddy.model.Topic;
+import org.example.studybuddy.model.Subtopic;
+import org.example.studybuddy.util.ChatSimulator;
+import org.example.studybuddy.util.SceneManager;
+import org.example.studybuddy.util.SessionManager;
 
 public class RoomsController implements Initializable {
 
@@ -49,14 +61,37 @@ public class RoomsController implements Initializable {
 
     private SessionManager sessionManager = SessionManager.getInstance();
     private RoomDAO roomDAO = new RoomDAO();
+    private QuestionDAO questionDAO = new QuestionDAO();
     private ObservableList<Room> userRooms = FXCollections.observableArrayList();
     private Room currentActiveRoom;
+    private ObservableList<RoomMessage> chatMessages = FXCollections.observableArrayList();
+    private ChatSimulator chatSimulator = new ChatSimulator();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupRoomsList();
         setupParticipantsList();
+        setupSharedQuestionsList();
         loadUserRooms();
+    }
+
+    private void setupSharedQuestionsList() {
+        sharedQuestionsListView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                String selectedQuestion = sharedQuestionsListView.getSelectionModel().getSelectedItem();
+                if (selectedQuestion != null) {
+                    showQuestionDetails(selectedQuestion);
+                }
+            }
+        });
+    }
+
+    private void showQuestionDetails(String questionSummary) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Question Details");
+        alert.setHeaderText("Shared Question");
+        alert.setContentText("Full question details would be displayed here in a real implementation.\n\nSummary: " + questionSummary);
+        alert.showAndWait();
     }
 
     private void setupRoomsList() {
@@ -163,6 +198,7 @@ public class RoomsController implements Initializable {
         }
     }
 
+    // UPDATED: Enhanced enterRoom method with shared questions loading
     private void enterRoom(Room room) {
         currentActiveRoom = room;
 
@@ -174,11 +210,91 @@ public class RoomsController implements Initializable {
         // Load participants
         loadRoomParticipants();
 
+        // ADDED: Load shared questions visible to all members
+        loadRoomSharedQuestions();
+
+        // Load and setup chat
+        setupRoomChat();
+
         // Enable active room tab and switch to it
         activeRoomTab.setDisable(false);
         activeRoomTab.getTabPane().getSelectionModel().select(activeRoomTab);
 
         showMessage("Entered room: " + room.getName(), false);
+
+        // Notify system of user join
+        roomDAO.addSystemMessage(room.getId(), sessionManager.getCurrentUser().getUsername() + " joined the room");
+    }
+
+    // NEW: Load shared questions for all room members
+    private void loadRoomSharedQuestions() {
+        if (currentActiveRoom == null) return;
+
+        List<Question> roomQuestions = roomDAO.getRoomSharedQuestions(currentActiveRoom.getId());
+        ObservableList<String> questionSummaries = FXCollections.observableArrayList();
+
+        for (Question q : roomQuestions) {
+            String summary = String.format("[%s] %s",
+                    q.getSharedByUsername(),
+                    q.getQuestionText().length() > 50 ?
+                            q.getQuestionText().substring(0, 50) + "..." :
+                            q.getQuestionText());
+            questionSummaries.add(summary);
+        }
+
+        sharedQuestionsListView.setItems(questionSummaries);
+    }
+
+    // New method to setup chat functionality
+    private void setupRoomChat() {
+        if (currentActiveRoom == null) return;
+
+        // Load recent messages
+        loadRecentMessages();
+
+        // Setup chat message display
+        chatMessages.addListener((javafx.collections.ListChangeListener<RoomMessage>) change -> {
+            updateChatDisplay();
+        });
+
+        // Start chat simulation
+        chatSimulator.addMessageListener(this::handleIncomingMessage);
+        chatSimulator.startSimulation(currentActiveRoom.getId());
+
+        // Enable enter key for sending messages
+        chatMessageField.setOnKeyPressed(event -> {
+            if (event.getCode().toString().equals("ENTER")) {
+                handleSendMessage();
+            }
+        });
+    }
+
+    // Load recent chat messages
+    private void loadRecentMessages() {
+        if (currentActiveRoom == null) return;
+
+        List<RoomMessage> recentMessages = roomDAO.getRecentMessages(currentActiveRoom.getId(), 50);
+        chatMessages.setAll(recentMessages);
+    }
+
+    // Handle incoming messages (from simulation or real network)
+    private void handleIncomingMessage(RoomMessage message) {
+        Platform.runLater(() -> {
+            chatMessages.add(message);
+            roomDAO.saveMessage(message); // Save to database
+        });
+    }
+
+    // Update chat display
+    private void updateChatDisplay() {
+        StringBuilder chatContent = new StringBuilder();
+        for (RoomMessage message : chatMessages) {
+            chatContent.append(message.getDisplayText()).append("\n");
+        }
+        chatArea.setText(chatContent.toString());
+
+        // Auto-scroll to bottom
+        chatArea.setScrollTop(Double.MAX_VALUE);
     }
 
     private void loadRoomParticipants() {
@@ -191,6 +307,7 @@ public class RoomsController implements Initializable {
         participantCountLabel.setText(participants.size() + " members");
     }
 
+    // Enhanced leave room method
     @FXML
     private void handleLeaveRoom() {
         if (currentActiveRoom == null) return;
@@ -202,10 +319,23 @@ public class RoomsController implements Initializable {
 
         alert.showAndWait().ifPresent(result -> {
             if (result == ButtonType.OK) {
+                // Add system message for user leaving
+                roomDAO.addSystemMessage(currentActiveRoom.getId(),
+                        sessionManager.getCurrentUser().getUsername() + " left the room");
+
+                // Stop chat simulation
+                chatSimulator.stopSimulation();
+                chatSimulator.removeMessageListener(this::handleIncomingMessage);
+
                 boolean success = roomDAO.leaveRoom(currentActiveRoom.getId(), sessionManager.getCurrentUser().getId());
 
                 if (success) {
                     showMessage("Left room successfully.", false);
+
+                    // Clear chat and shared questions
+                    chatMessages.clear();
+                    chatArea.clear();
+                    sharedQuestionsListView.getItems().clear();
 
                     // Disable active room tab and switch back to My Rooms
                     activeRoomTab.setDisable(true);
@@ -222,25 +352,137 @@ public class RoomsController implements Initializable {
 
     @FXML
     private void handleSendMessage() {
-        String message = chatMessageField.getText().trim();
-        if (!message.isEmpty() && currentActiveRoom != null) {
-            // Add message to chat (for now, just display locally)
-            String username = sessionManager.getCurrentUser().getUsername();
-            String timestamp = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+        String messageText = chatMessageField.getText().trim();
+        if (!messageText.isEmpty() && currentActiveRoom != null) {
+            // Create user message
+            RoomMessage userMessage = new RoomMessage(
+                    currentActiveRoom.getId(),
+                    sessionManager.getCurrentUser().getId(),
+                    sessionManager.getCurrentUser().getUsername(),
+                    messageText,
+                    "text"
+            );
 
-            chatArea.appendText(String.format("[%s] %s: %s\n", timestamp, username, message));
+            // Add to chat immediately
+            chatMessages.add(userMessage);
+
+            // Save to database
+            roomDAO.saveMessage(userMessage);
+
+            // Clear input
             chatMessageField.clear();
 
-            // Scroll to bottom
-            chatArea.setScrollTop(Double.MAX_VALUE);
+            // In a real application, this would send to other connected users
+            // For now, we just save it locally
         }
     }
 
     @FXML
     private void handleShareQuestions() {
-        // TODO: Implement question sharing functionality
-        showMessage("Question sharing feature coming soon!", false);
+        if (currentActiveRoom == null) return;
+
+        // Create dialog to select questions to share
+        Dialog<List<Question>> dialog = new Dialog<>();
+        dialog.setTitle("Share Questions with Room");
+        dialog.setHeaderText("Select questions to share with all room members");
+
+        // Create UI for question selection
+        VBox content = new VBox(10);
+
+        // Get user's questions
+        List<Topic> userTopics = questionDAO.getAllTopics();
+        CheckBox selectAllCheckBox = new CheckBox("Select All");
+        content.getChildren().add(selectAllCheckBox);
+
+        List<CheckBox> questionCheckBoxes = new ArrayList<>();
+        ScrollPane scrollPane = new ScrollPane();
+        VBox questionsList = new VBox(5);
+
+        for (Topic topic : userTopics) {
+            Label topicLabel = new Label(topic.getName());
+            topicLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+            questionsList.getChildren().add(topicLabel);
+
+            List<Subtopic> subtopics = questionDAO.getSubtopicsByTopic(topic.getId());
+            for (Subtopic subtopic : subtopics) {
+                List<Question> questions = questionDAO.getQuestionsBySubtopic(subtopic.getId());
+                for (Question question : questions) {
+                    CheckBox questionCB = new CheckBox(question.getQuestionText().length() > 60 ?
+                            question.getQuestionText().substring(0, 60) + "..." :
+                            question.getQuestionText());
+                    questionCB.setUserData(question);
+                    questionCheckBoxes.add(questionCB);
+                    questionsList.getChildren().add(questionCB);
+                }
+            }
+        }
+
+        scrollPane.setContent(questionsList);
+        scrollPane.setPrefHeight(300);
+        content.getChildren().add(scrollPane);
+
+        // Select all functionality
+        selectAllCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            questionCheckBoxes.forEach(cb -> cb.setSelected(newVal));
+        });
+
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        // Convert result
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                return questionCheckBoxes.stream()
+                        .filter(CheckBox::isSelected)
+                        .map(cb -> (Question) cb.getUserData())
+                        .collect(Collectors.toList());
+            }
+            return null;
+        });
+
+        Optional<List<Question>> result = dialog.showAndWait();
+
+        result.ifPresent(selectedQuestions -> {
+            if (!selectedQuestions.isEmpty()) {
+                shareQuestionsWithAllMembers(selectedQuestions);
+            }
+        });
     }
+
+    // UPDATED: Enhanced question sharing for all room members
+    private void shareQuestionsWithAllMembers(List<Question> questions) {
+        if (currentActiveRoom == null) return;
+
+        int successCount = 0;
+
+        // Add each question to room's shared collection
+        for (Question question : questions) {
+            if (roomDAO.addQuestionToRoom(currentActiveRoom.getId(), question.getId(),
+                    sessionManager.getCurrentUser().getId())) {
+                successCount++;
+            }
+        }
+
+        if (successCount > 0) {
+            // Refresh shared questions display for current user
+            loadRoomSharedQuestions();
+
+            // Add system message visible to all members
+            String username = sessionManager.getCurrentUser().getUsername();
+            String message = username + " shared " + successCount + " questions with the room";
+            roomDAO.addSystemMessage(currentActiveRoom.getId(), message);
+
+            // Add to chat
+            RoomMessage shareMessage = new RoomMessage(currentActiveRoom.getId(), 0, "System", message, "system");
+            handleIncomingMessage(shareMessage);
+
+            showMessage("Successfully shared " + successCount + " questions with all members!", false);
+        } else {
+            showMessage("Failed to share questions. They may already be shared.", true);
+        }
+    }
+
+    // REMOVED: Old shareQuestionsWithRoom method - replaced with shareQuestionsWithAllMembers
 
     @FXML
     private void handleInviteParticipants() {
