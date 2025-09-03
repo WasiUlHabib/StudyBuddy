@@ -181,4 +181,19 @@ public class Question {
                 ", difficulty=" + getDifficultyText() +
                 '}';
     }
+
+    // Add these fields for room sharing
+    private int sharedBy;
+    private String sharedByUsername;
+    private LocalDateTime sharedAt;
+
+    // Add getters and setters
+    public int getSharedBy() { return sharedBy; }
+    public void setSharedBy(int sharedBy) { this.sharedBy = sharedBy; }
+
+    public String getSharedByUsername() { return sharedByUsername; }
+    public void setSharedByUsername(String sharedByUsername) { this.sharedByUsername = sharedByUsername; }
+
+    public LocalDateTime getSharedAt() { return sharedAt; }
+    public void setSharedAt(LocalDateTime sharedAt) { this.sharedAt = sharedAt; }
 }

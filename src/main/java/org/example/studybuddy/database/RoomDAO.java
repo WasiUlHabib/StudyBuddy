@@ -2,6 +2,9 @@ package org.example.studybuddy.database;
 
 import org.example.studybuddy.model.Room;
 import org.example.studybuddy.model.RoomParticipant;
+import org.example.studybuddy.model.RoomMessage;
+import org.example.studybuddy.model.Question;  // ADD THIS IMPORT
+import java.util.Collections;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -176,7 +179,7 @@ public class RoomDAO {
         return rooms;
     }
 
-    // Get room participants - Fixed method name
+    // Get room participants
     public List<RoomParticipant> getRoomParticipants(int roomId) {
         List<RoomParticipant> participants = new ArrayList<>();
         String sql = """
@@ -241,6 +244,198 @@ public class RoomDAO {
             e.printStackTrace();
             return false;
         }
+    }
+
+    // Save message to database
+    public boolean saveMessage(RoomMessage message) {
+        String sql = "INSERT INTO room_messages (room_id, user_id, message, message_type) VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, message.getRoomId());
+            stmt.setInt(2, message.getUserId());
+            stmt.setString(3, message.getMessage());
+            stmt.setString(4, message.getMessageType());
+
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Get recent messages for a room
+    public List<RoomMessage> getRecentMessages(int roomId, int limit) {
+        List<RoomMessage> messages = new ArrayList<>();
+        String sql = """
+        SELECT rm.*, u.username 
+        FROM room_messages rm 
+        JOIN users u ON rm.user_id = u.id 
+        WHERE rm.room_id = ? 
+        ORDER BY rm.sent_at DESC 
+        LIMIT ?
+    """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, roomId);
+            stmt.setInt(2, limit);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    RoomMessage message = new RoomMessage();
+                    message.setId(rs.getInt("id"));
+                    message.setRoomId(rs.getInt("room_id"));
+                    message.setUserId(rs.getInt("user_id"));
+                    message.setUsername(rs.getString("username"));
+                    message.setMessage(rs.getString("message"));
+                    message.setMessageType(rs.getString("message_type"));
+                    message.setSentAt(rs.getTimestamp("sent_at").toLocalDateTime());
+
+                    messages.add(message);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Reverse to show oldest first
+        Collections.reverse(messages);
+        return messages;
+    }
+
+    // Add system message (user joined/left)
+    public void addSystemMessage(int roomId, String message) {
+        RoomMessage systemMessage = new RoomMessage(roomId, 0, "System", message, "system");
+        saveMessage(systemMessage);
+    }
+
+    // Add question to room's shared collection
+    public boolean addQuestionToRoom(int roomId, int questionId, int sharedBy) {
+        String sql = "INSERT OR IGNORE INTO room_questions (room_id, question_id, shared_by) VALUES (?, ?, ?)";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, roomId);
+            stmt.setInt(2, questionId);
+            stmt.setInt(3, sharedBy);
+
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Get all questions shared in a room (visible to all members)
+    public List<Question> getRoomSharedQuestions(int roomId) {
+        List<Question> sharedQuestions = new ArrayList<>();
+        String sql = """
+        SELECT q.*, rq.shared_by, rq.shared_at, u.username as shared_by_username
+        FROM room_questions rq
+        JOIN questions q ON rq.question_id = q.id
+        JOIN users u ON rq.shared_by = u.id
+        WHERE rq.room_id = ?
+        ORDER BY rq.shared_at DESC
+    """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, roomId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Question question = new Question(
+                            rs.getInt("id"),
+                            rs.getString("question_text"),
+                            rs.getString("option_a"),
+                            rs.getString("option_b"),
+                            rs.getString("option_c"),
+                            rs.getString("option_d"),
+                            rs.getString("correct_answer"),
+                            rs.getString("explanation"),
+                            rs.getInt("difficulty_level"),
+                            rs.getInt("subtopic_id"),
+                            rs.getInt("created_by"),
+                            rs.getTimestamp("created_at").toLocalDateTime()
+                    );
+
+                    // SIMPLIFIED: Add sharing metadata only if Question model supports it
+                    // If these methods don't exist in Question model, comment out these lines:
+                    try {
+                        question.setSharedBy(rs.getInt("shared_by"));
+                        question.setSharedByUsername(rs.getString("shared_by_username"));
+                    } catch (Exception e) {
+                        // Methods don't exist in Question model - that's okay
+                        // We'll handle attribution in the controller instead
+                    }
+
+                    sharedQuestions.add(question);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return sharedQuestions;
+    }
+
+    // ALTERNATIVE: Get shared questions with metadata as separate method
+    public List<String> getRoomSharedQuestionsWithMetadata(int roomId) {
+        List<String> questionSummaries = new ArrayList<>();
+        String sql = """
+        SELECT q.question_text, u.username as shared_by_username
+        FROM room_questions rq
+        JOIN questions q ON rq.question_id = q.id
+        JOIN users u ON rq.shared_by = u.id
+        WHERE rq.room_id = ?
+        ORDER BY rq.shared_at DESC
+    """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, roomId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String questionText = rs.getString("question_text");
+                    String sharedBy = rs.getString("shared_by_username");
+
+                    String summary = String.format("[%s] %s",
+                            sharedBy,
+                            questionText.length() > 50 ?
+                                    questionText.substring(0, 50) + "..." :
+                                    questionText);
+
+                    questionSummaries.add(summary);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return questionSummaries;
+    }
+
+    // Remove question from room (admin/moderator only)
+    public boolean removeQuestionFromRoom(int roomId, int questionId, int userId) {
+        // Check if user has permission (admin/moderator)
+        String roleCheck = "SELECT role FROM room_participants WHERE room_id = ? AND user_id = ? AND is_active = 1";
+
+        try (PreparedStatement stmt = connection.prepareStatement(roleCheck)) {
+            stmt.setInt(1, roomId);
+            stmt.setInt(2, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String role = rs.getString("role");
+                    if ("admin".equals(role) || "moderator".equals(role)) {
+                        // User has permission, remove question
+                        String deleteSQL = "DELETE FROM room_questions WHERE room_id = ? AND question_id = ?";
+                        try (PreparedStatement deleteStmt = connection.prepareStatement(deleteSQL)) {
+                            deleteStmt.setInt(1, roomId);
+                            deleteStmt.setInt(2, questionId);
+                            return deleteStmt.executeUpdate() > 0;
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     // Check if user is in room
