@@ -89,9 +89,6 @@
                     <Button fx:id="resetButton" text="Reset" onAction="#handleReset"
                             style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 16;"
                             prefWidth="100" prefHeight="40" />
-<!--                    <Button fx:id="exportQuestionsButton" text="Export Questions as PDF" onAction="#handleExportQuestions"-->
-<!--                            style="-fx-background-color: #9b59b6; -fx-text-fill: white; -fx-font-size: 14;"-->
-<!--                            prefWidth="200" prefHeight="40" />-->
                 </HBox>
 
                 <Label fx:id="messageLabel" style="-fx-font-size: 14;" alignment="CENTER" />

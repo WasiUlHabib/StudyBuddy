@@ -199,5 +199,4 @@ public class PDFExporter {
         table.addCell(labelCell);
         table.addCell(valueCell);
     }
-
 }
