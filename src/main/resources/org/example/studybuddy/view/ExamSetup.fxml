@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.example.studybuddy.controller.ExamSetupController">
+
+    <top>
+        <MenuBar>
+            <Menu text="Navigation">
+                <MenuItem text="Dashboard" onAction="#goToDashboard" />
+                <MenuItem text="Question Bank" onAction="#goToQuestionBank" />
+                <MenuItem text="Profile" onAction="#goToProfile" />
+                <SeparatorMenuItem />
+                <MenuItem text="Logout" onAction="#handleLogout" />
+            </Menu>
+        </MenuBar>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true">
+            <VBox spacing="25">
+                <padding>
+                    <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+                </padding>
+
+                <Label text="Create New Exam" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+
+                <!-- Exam Basic Info -->
+                <VBox spacing="15" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 10;">
+                    <Label text="Exam Configuration" style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #34495e;" />
+
+                    <GridPane hgap="15" vgap="15">
+                        <Label text="Exam Name:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="examNameField" GridPane.columnIndex="1" GridPane.rowIndex="0"
+                                   promptText="Enter exam name" prefWidth="300" />
+
+                        <Label text="Time Limit (minutes):" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <HBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Slider fx:id="timeLimitSlider" min="5" max="180" value="60" showTickLabels="true"
+                                    showTickMarks="true" majorTickUnit="30" prefWidth="200" />
+                            <Label fx:id="timeLimitLabel" text="60 minutes" style="-fx-font-weight: bold;" />
+                        </HBox>
+
+                        <Label text="Negative Marking:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <CheckBox fx:id="negativeMarkingCheckBox" text="Enable negative marking (-0.25 for wrong answers)"
+                                  GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                    </GridPane>
+                </VBox>
+
+                <!-- Question Selection -->
+                <VBox spacing="15" style="-fx-background-color: #e8f4f8; -fx-padding: 20; -fx-background-radius: 10;">
+                    <Label text="Question Selection" style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #34495e;" />
+
+                    <GridPane hgap="15" vgap="15">
+                        <Label text="Select Topics:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <VBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <ScrollPane prefHeight="150" prefWidth="400">
+                                <VBox fx:id="topicsContainer" spacing="10" />
+                            </ScrollPane>
+                            <Label text="Select topics and specify number of questions from each subtopic"
+                                   style="-fx-text-fill: #7f8c8d; -fx-font-size: 12;" />
+                        </VBox>
+                    </GridPane>
+                </VBox>
+
+                <!-- Summary and Generate -->
+                <VBox spacing="15" style="-fx-background-color: #f0f8e8; -fx-padding: 20; -fx-background-radius: 10;">
+                    <Label text="Exam Summary" style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #34495e;" />
+
+                    <GridPane hgap="15" vgap="10">
+                        <Label text="Total Questions:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <Label fx:id="totalQuestionsLabel" text="0" style="-fx-font-weight: bold; -fx-font-size: 16;"
+                               GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                        <Label text="Estimated Duration:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <Label fx:id="estimatedDurationLabel" text="60 minutes" style="-fx-font-weight: bold; -fx-font-size: 16;"
+                               GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                    </GridPane>
+                </VBox>
+
+                <!-- Action Buttons -->
+                <HBox spacing="20" alignment="CENTER">
+                    <Button fx:id="generateExamButton" text="Generate Exam" onAction="#handleGenerateExam"
+                            style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold;"
+                            prefWidth="150" prefHeight="40" />
+                    <Button fx:id="resetButton" text="Reset" onAction="#handleReset"
+                            style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 16;"
+                            prefWidth="100" prefHeight="40" />
+                </HBox>
+
+                <Label fx:id="messageLabel" style="-fx-font-size: 14;" alignment="CENTER" />
+            </VBox>
+        </ScrollPane>
+    </center>
+</BorderPane>

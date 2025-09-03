@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.example.studybuddy.controller.RoomsController">
+
+    <top>
+        <MenuBar>
+            <Menu text="Navigation">
+                <MenuItem text="Dashboard" onAction="#goToDashboard" />
+                <MenuItem text="Question Bank" onAction="#goToQuestionBank" />
+                <MenuItem text="Rooms" onAction="#goToRooms" />
+                <MenuItem text="Profile" onAction="#goToProfile" />
+                <SeparatorMenuItem />
+                <MenuItem text="Logout" onAction="#handleLogout" />
+            </Menu>
+        </MenuBar>
+    </top>
+
+    <center>
+        <TabPane>
+            <!-- My Rooms Tab -->
+            <Tab text="My Rooms" closable="false">
+                <VBox spacing="20">
+                    <padding>
+                        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                    </padding>
+
+                    <Label text="My Study Rooms" style="-fx-font-size: 20; -fx-font-weight: bold;" />
+
+                    <!-- Quick Actions -->
+                    <HBox spacing="15" alignment="CENTER_LEFT">
+                        <Button fx:id="createRoomButton" text="Create Room" onAction="#handleCreateRoom"
+                                style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 14;"
+                                prefWidth="120" prefHeight="35" />
+                        <TextField fx:id="roomCodeField" promptText="Enter room code" prefWidth="150" />
+                        <Button fx:id="joinRoomButton" text="Join Room" onAction="#handleJoinRoom"
+                                style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14;"
+                                prefWidth="100" prefHeight="35" />
+                    </HBox>
+
+                    <!-- Room List -->
+                    <VBox spacing="10">
+                        <Label text="Your Rooms:" style="-fx-font-size: 16; -fx-font-weight: bold;" />
+                        <ListView fx:id="roomsListView" prefHeight="400" />
+                    </VBox>
+
+                    <Label fx:id="roomMessageLabel" style="-fx-font-size: 14;" />
+                </VBox>
+            </Tab>
+
+            <!-- Active Room Tab -->
+            <Tab text="Active Room" closable="false" fx:id="activeRoomTab" disable="true">
+                <BorderPane>
+                    <!-- Room Header -->
+                    <top>
+                        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 15;">
+                            <HBox spacing="15" alignment="CENTER_LEFT">
+                                <Label fx:id="activeRoomNameLabel" text="Room Name" style="-fx-font-size: 18; -fx-font-weight: bold;" />
+                                <Label fx:id="activeRoomCodeLabel" text="(CODE123)" style="-fx-font-size: 14; -fx-text-fill: #7f8c8d;" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button fx:id="leaveRoomButton" text="Leave Room" onAction="#handleLeaveRoom"
+                                        style="-fx-background-color: #e74c3c; -fx-text-fill: white;" />
+                            </HBox>
+                            <Label fx:id="activeRoomDescriptionLabel" text="Room description" style="-fx-font-size: 12;" />
+                        </VBox>
+                    </top>
+
+                    <center>
+                        <HBox spacing="15">
+                            <padding>
+                                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+                            </padding>
+
+                            <!-- Main Content Area -->
+                            <VBox spacing="15" HBox.hgrow="ALWAYS">
+
+                                <!-- Chat Area -->
+                                <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 15; -fx-background-radius: 10;">
+                                    <Label text="Room Chat" style="-fx-font-size: 16; -fx-font-weight: bold;" />
+                                    <TextArea fx:id="chatArea" prefRowCount="12" editable="false" wrapText="true"
+                                              style="-fx-control-inner-background: white;" />
+                                    <HBox spacing="10">
+                                        <TextField fx:id="chatMessageField" promptText="Type your message..." HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="sendMessageButton" text="Send" onAction="#handleSendMessage"
+                                                style="-fx-background-color: #3498db; -fx-text-fill: white;" />
+                                    </HBox>
+                                </VBox>
+
+                                <!-- Shared Questions Area -->
+                                <VBox spacing="10" style="-fx-background-color: #e8f4f8; -fx-padding: 15; -fx-background-radius: 10;">
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Label text="Shared Questions" style="-fx-font-size: 16; -fx-font-weight: bold;" />
+                                        <Region HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="shareQuestionsButton" text="Share Questions" onAction="#handleShareQuestions"
+                                                style="-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-size: 12;" />
+                                    </HBox>
+                                    <ListView fx:id="sharedQuestionsListView" prefHeight="150" />
+                                </VBox>
+                            </VBox>
+
+                            <!-- Participants Panel -->
+                            <VBox spacing="10" prefWidth="200" style="-fx-background-color: #f0f8f0; -fx-padding: 15; -fx-background-radius: 10;">
+                                <Label text="Participants" style="-fx-font-size: 16; -fx-font-weight: bold;" />
+                                <Label fx:id="participantCountLabel" text="0 members" style="-fx-font-size: 12; -fx-text-fill: #7f8c8d;" />
+                                <ListView fx:id="participantsListView" prefHeight="300" />
+                                <Button fx:id="inviteParticipantsButton" text="Invite Others" onAction="#handleInviteParticipants"
+                                        style="-fx-background-color: #9b59b6; -fx-text-fill: white; -fx-font-size: 12;"
+                                        prefWidth="150" />
+                            </VBox>
+                        </HBox>
+                    </center>
+                </BorderPane>
+            </Tab>
+        </TabPane>
+    </center>
+</BorderPane>

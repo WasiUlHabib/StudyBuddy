@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.example.studybuddy.controller.QuestionBankController">
+
+    <top>
+        <MenuBar>
+            <Menu text="Navigation">
+                <MenuItem text="Dashboard" onAction="#goToDashboard" />
+                <MenuItem text="Question Bank" onAction="#goToQuestionBank" />
+                <MenuItem text="Profile" onAction="#goToProfile" />
+                <SeparatorMenuItem />
+                <MenuItem text="Logout" onAction="#handleLogout" />
+            </Menu>
+            <Menu text="Quick Actions">
+                <MenuItem text="Import Questions from CSV" onAction="#handleImportQuestions" />
+                <MenuItem text="Export Questions to CSV" onAction="#handleExportQuestions" />
+                <MenuItem text="Download CSV Template" onAction="#handleDownloadTemplate" />
+                <SeparatorMenuItem />
+                <MenuItem text="Add Sample Data" onAction="#addSampleData" />
+                <MenuItem text="Clear All Questions" onAction="#clearAllQuestions" />
+            </Menu>
+
+        </MenuBar>
+    </top>
+
+    <center>
+        <TabPane>
+            <!-- Upload Question Tab -->
+            <Tab text="Upload Question" closable="false">
+                <ScrollPane fitToWidth="true">
+                    <VBox spacing="20">
+                        <padding>
+                            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                        </padding>
+
+                        <Label text="Upload New Question" style="-fx-font-size: 20; -fx-font-weight: bold;" />
+
+                        <!-- Topic and Subtopic Selection -->
+                        <GridPane hgap="15" vgap="10">
+                            <Label text="Topic:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                            <HBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                <ComboBox fx:id="topicComboBox" prefWidth="200" promptText="Select or create topic" />
+                                <Button fx:id="createTopicButton" text="Create New Topic" onAction="#handleCreateTopic" />
+                            </HBox>
+
+                            <Label text="Subtopic:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                            <HBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                <ComboBox fx:id="subtopicComboBox" prefWidth="200" promptText="Select or create subtopic" />
+                                <Button fx:id="createSubtopicButton" text="Create New Subtopic" onAction="#handleCreateSubtopic" disable="true" />
+                            </HBox>
+                        </GridPane>
+
+                        <!-- Question Form -->
+                        <VBox spacing="10">
+                            <Label text="Question:" style="-fx-font-weight: bold;" />
+                            <TextArea fx:id="questionTextArea" prefRowCount="3" promptText="Enter your question here..." wrapText="true" />
+                        </VBox>
+
+                        <!-- Options -->
+                        <GridPane hgap="10" vgap="10">
+                            <Label text="Option A:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                            <TextField fx:id="optionAField" GridPane.columnIndex="1" GridPane.rowIndex="0" promptText="Enter option A" prefWidth="300" />
+
+                            <Label text="Option B:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                            <TextField fx:id="optionBField" GridPane.columnIndex="1" GridPane.rowIndex="1" promptText="Enter option B" prefWidth="300" />
+
+                            <Label text="Option C:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                            <TextField fx:id="optionCField" GridPane.columnIndex="1" GridPane.rowIndex="2" promptText="Enter option C" prefWidth="300" />
+
+                            <Label text="Option D:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                            <TextField fx:id="optionDField" GridPane.columnIndex="1" GridPane.rowIndex="3" promptText="Enter option D" prefWidth="300" />
+                        </GridPane>
+
+                        <!-- Correct Answer and Difficulty -->
+                        <GridPane hgap="15" vgap="10">
+                            <Label text="Correct Answer:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                            <HBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                <RadioButton fx:id="answerARadio" text="A" toggleGroup="$answerGroup" />
+                                <RadioButton fx:id="answerBRadio" text="B" toggleGroup="$answerGroup" />
+                                <RadioButton fx:id="answerCRadio" text="C" toggleGroup="$answerGroup" />
+                                <RadioButton fx:id="answerDRadio" text="D" toggleGroup="$answerGroup" />
+                            </HBox>
+
+                            <Label text="Difficulty Level:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                            <ComboBox fx:id="difficultyComboBox" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="150" />
+                        </GridPane>
+
+                        <!-- Explanation -->
+                        <VBox spacing="10">
+                            <Label text="Explanation (Optional):" style="-fx-font-weight: bold;" />
+                            <TextArea fx:id="explanationTextArea" prefRowCount="2" promptText="Explain why this is the correct answer..." wrapText="true" />
+                        </VBox>
+
+                        <!-- Action Buttons -->
+                        <HBox spacing="15" alignment="CENTER">
+                            <Button fx:id="uploadQuestionButton" text="Upload Question" onAction="#handleUploadQuestion"
+                                    style="-fx-background-color: #4caf50; -fx-text-fill: white; -fx-font-size: 14;"
+                                    prefWidth="150" prefHeight="35" />
+                            <Button fx:id="resetFormButton" text="Reset Form" onAction="#handleResetForm"
+                                    style="-fx-background-color: #ff9800; -fx-text-fill: white; -fx-font-size: 14;"
+                                    prefWidth="120" prefHeight="35" />
+                        </HBox>
+
+                        <Label fx:id="uploadMessageLabel" style="-fx-font-size: 14;" />
+                    </VBox>
+                </ScrollPane>
+            </Tab>
+
+            <!-- Browse Questions Tab -->
+            <Tab text="Browse Questions" closable="false">
+                <VBox spacing="15">
+                    <padding>
+                        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                    </padding>
+
+                    <Label text="Browse Questions" style="-fx-font-size: 20; -fx-font-weight: bold;" />
+
+                    <!-- Filter Controls -->
+                    <GridPane hgap="15" vgap="10">
+                        <Label text="Filter by Topic:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <ComboBox fx:id="filterTopicComboBox" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="200" />
+
+                        <Label text="Filter by Subtopic:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <ComboBox fx:id="filterSubtopicComboBox" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="200" />
+
+                        <Label text="Search:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+                        <TextField fx:id="searchField" GridPane.columnIndex="3" GridPane.rowIndex="0" promptText="Search questions..." prefWidth="200" />
+
+                        <Button fx:id="searchButton" text="Search" onAction="#handleSearch" GridPane.columnIndex="3" GridPane.rowIndex="1" prefWidth="80" />
+                        <Button fx:id="clearFiltersButton" text="Clear Filters" onAction="#handleClearFilters" GridPane.columnIndex="4" GridPane.rowIndex="1" prefWidth="100" />
+                    </GridPane>
+
+                    <!-- Questions List -->
+                    <VBox spacing="10">
+                        <Label fx:id="questionCountLabel" text="Total Questions: 0" style="-fx-font-weight: bold;" />
+                        <ListView fx:id="questionsListView" prefHeight="400" />
+                    </VBox>
+
+                    <!-- Question Details -->
+                    <VBox fx:id="questionDetailsBox" spacing="10" visible="false">
+                        <Label text="Question Details:" style="-fx-font-size: 16; -fx-font-weight: bold;" />
+                        <TextArea fx:id="questionDetailsArea" prefRowCount="8" editable="false" wrapText="true"
+                                  style="-fx-background-color: #f5f5f5;" />
+                        <HBox spacing="10" alignment="CENTER">
+                            <Button fx:id="deleteQuestionButton" text="Delete Question" onAction="#handleDeleteQuestion"
+                                    style="-fx-background-color: #f44336; -fx-text-fill: white;" />
+                        </HBox>
+                    </VBox>
+                </VBox>
+            </Tab>
+        </TabPane>
+    </center>
+</BorderPane>

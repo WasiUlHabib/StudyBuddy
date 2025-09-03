@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="org.example.studybuddy.controller.CreateRoomController"
+      spacing="20" prefWidth="400" prefHeight="350">
+
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+    </padding>
+
+    <Label text="Create New Room" style="-fx-font-size: 18; -fx-font-weight: bold;" />
+
+    <GridPane hgap="15" vgap="15">
+        <Label text="Room Name:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <TextField fx:id="roomNameField" GridPane.columnIndex="1" GridPane.rowIndex="0"
+                   promptText="Enter room name" prefWidth="200" />
+
+        <Label text="Description:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+        <TextArea fx:id="roomDescriptionArea" GridPane.columnIndex="1" GridPane.rowIndex="1"
+                  promptText="Optional description" prefRowCount="3" prefWidth="200" wrapText="true" />
+
+        <Label text="Max Participants:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+        <Spinner fx:id="maxParticipantsSpinner" GridPane.columnIndex="1" GridPane.rowIndex="2"
+                 prefWidth="200" />
+    </GridPane>
+
+    <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-padding: 15; -fx-background-radius: 5;">
+        <Label text="Room Features:" style="-fx-font-weight: bold;" />
+        <CheckBox fx:id="allowChatCheckBox" text="Enable chat" selected="true" />
+        <CheckBox fx:id="allowQuestionSharingCheckBox" text="Allow question sharing" selected="true" />
+        <CheckBox fx:id="allowGroupExamsCheckBox" text="Enable group exams" selected="true" />
+    </VBox>
+
+    <HBox spacing="15" alignment="CENTER">
+        <Button fx:id="createButton" text="Create Room" onAction="#handleCreateRoom"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 14;"
+                prefWidth="120" prefHeight="35" />
+        <Button fx:id="cancelButton" text="Cancel" onAction="#handleCancel"
+                style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-font-size: 14;"
+                prefWidth="100" prefHeight="35" />
+    </HBox>
+
+    <Label fx:id="messageLabel" style="-fx-font-size: 12;" alignment="CENTER" />
+</VBox>
