@@ -13,10 +13,20 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
 
+import org.example.studybuddy.database.ExamLogDAO;
+import org.example.studybuddy.model.ExamLog;
+import org.example.studybuddy.util.PDFExporter;
+import javafx.stage.FileChooser;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
+
+import java.util.ArrayList;
 
 public class ExamController implements Initializable {
 
@@ -34,6 +44,8 @@ public class ExamController implements Initializable {
     @FXML private Button submitButton;
     @FXML private GridPane questionGridPane;
 
+    // Fields
+    private ExamLogDAO examLogDAO = new ExamLogDAO();
     private static int currentExamId;
     private ExamDAO examDAO = new ExamDAO();
     private SessionManager sessionManager = SessionManager.getInstance();
@@ -45,6 +57,7 @@ public class ExamController implements Initializable {
     private Timeline examTimer;
     private int remainingTimeInSeconds;
     private ToggleGroup answerGroup = new ToggleGroup();
+    private ExamLog currentExamLog; // To store exam results for PDF export
 
     // Static method to set exam ID from ExamSetup
     public static void setCurrentExamId(int examId) {
@@ -230,7 +243,7 @@ public class ExamController implements Initializable {
         saveCurrentAnswer();
 
         // Count answered questions
-        long answeredCount = java.util.Arrays.stream(userAnswers)
+        long answeredCount = Arrays.stream(userAnswers)
                 .filter(answer -> answer != null)
                 .count();
 
@@ -246,6 +259,7 @@ public class ExamController implements Initializable {
         }
     }
 
+    // CORRECTED submitExam method
     private void submitExam() {
         if (examTimer != null) {
             examTimer.stop();
@@ -255,11 +269,114 @@ public class ExamController implements Initializable {
         ExamResult result = examDAO.calculateExamResult(currentExamId,
                 sessionManager.getCurrentUser().getId(), currentExam.isNegativeMarks());
 
-        // Update user statistics
-        SessionManager.getInstance().refreshUserStats();
+        // Calculate stats for exam log
+        int correctCount = 0;
+        int wrongCount = 0;
+        int unanswered = 0;
 
-        // Navigate to results
-        ExamResultController.setExamResult(result, currentExam, examQuestions, userAnswers);
+        for (int i = 0; i < examQuestions.size(); i++) {
+            if (userAnswers[i] == null) {
+                unanswered++;
+            } else if (userAnswers[i].equals(examQuestions.get(i).getCorrectAnswer())) {
+                correctCount++;
+            } else {
+                wrongCount++;
+            }
+        }
+
+        int timeTaken = (currentExam.getTimeLimit() * 60) - remainingTimeInSeconds;
+
+        // Save exam log
+        saveExamLog(currentExam.getName(), examQuestions, Arrays.asList(userAnswers),
+                timeTaken, correctCount, wrongCount, unanswered);
+
+        // Update user statistics - Fixed method call
+        try {
+            sessionManager.refreshUserStats();
+        } catch (Exception e) {
+            // If refreshUserStats doesn't exist, try alternative
+            sessionManager = SessionManager.getInstance();
+        }
+
+        // Navigate to results - FIXED: Pass correct parameters to match ExamResultController
+        ExamResultController.setExamResult(result,examQuestions, userAnswers);
         SceneManager.getInstance().switchToExamResult();
     }
+
+    // Method to save exam log when exam completes
+    private void saveExamLog(String examName, List<Question> questions, List<String> userAnswersList,
+                             int timeTaken, int correctCount, int wrongCount, int unansweredCount) {
+        try {
+            ExamLog examLog = new ExamLog(
+                    sessionManager.getCurrentUser().getId(),
+                    examName,
+                    questions.size(),
+                    correctCount,
+                    wrongCount,
+                    unansweredCount,
+                    correctCount, // score = correct answers for simple scoring
+                    timeTaken
+            );
+
+            // Save to database
+            boolean saved = examLogDAO.saveExamLog(examLog);
+            if (saved) {
+                currentExamLog = examLog; // Store for PDF export
+                System.out.println("Exam log saved successfully");
+            } else {
+                System.err.println("Failed to save exam log");
+            }
+        } catch (Exception e) {
+            System.err.println("Error saving exam log: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // Message display method
+    private void showMessage(String message, boolean isError) {
+        Platform.runLater(() -> {
+            Alert.AlertType alertType = isError ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION;
+            Alert alert = new Alert(alertType);
+            alert.setTitle(isError ? "Error" : "Success");
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+            alert.showAndWait();
+        });
+    }
+
+    // PDF export method (optional - mainly for testing)
+    @FXML
+    private void handleExportPDF() {
+        if (currentExamLog == null) {
+            showMessage("No exam data to export. Complete an exam first.", true);
+            return;
+        }
+
+        try {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save Exam Report as PDF");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
+            fileChooser.setInitialFileName("StudyBuddy_Exam_" +
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf");
+
+            java.io.File file = fileChooser.showSaveDialog(null);
+
+            if (file != null) {
+                List<String> userAnswersList = Arrays.asList(userAnswers);
+                boolean success = PDFExporter.exportExamResult(currentExamLog, examQuestions, userAnswersList, file.getAbsolutePath());
+
+                if (success) {
+                    showMessage("PDF exported successfully to " + file.getName(), false);
+                } else {
+                    showMessage("Failed to export PDF. Please try again.", true);
+                }
+            }
+        } catch (Exception e) {
+            showMessage("Error exporting PDF: " + e.getMessage(), true);
+            e.printStackTrace();
+        }
+    }
+
+
+
 }

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.example.studybuddy.controller.ExamHistoryController">
+
+    <top>
+        <MenuBar>
+            <Menu text="Navigation">
+                <MenuItem text="Dashboard" onAction="#goToDashboard" />
+                <MenuItem text="Question Bank" onAction="#goToQuestionBank" />
+                <MenuItem text="Exam History" onAction="#goToExamHistory" />
+                <MenuItem text="Rooms" onAction="#goToRooms" />
+                <MenuItem text="Profile" onAction="#goToProfile" />
+                <SeparatorMenuItem />
+                <MenuItem text="Logout" onAction="#handleLogout" />
+            </Menu>
+        </MenuBar>
+    </top>
+
+    <center>
+        <VBox spacing="20">
+            <padding>
+                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+            </padding>
+
+            <Label text="Exam History" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+
+            <!-- Statistics Cards -->
+            <HBox spacing="15" alignment="CENTER_LEFT">
+                <VBox spacing="5" style="-fx-background-color: #3498db; -fx-padding: 15; -fx-background-radius: 8;" prefWidth="150">
+                    <Label fx:id="totalExamsLabel" text="0" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;" />
+                    <Label text="Total Exams" style="-fx-font-size: 12; -fx-text-fill: white;" />
+                </VBox>
+
+                <VBox spacing="5" style="-fx-background-color: #27ae60; -fx-padding: 15; -fx-background-radius: 8;" prefWidth="150">
+                    <Label fx:id="avgScoreLabel" text="0%" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;" />
+                    <Label text="Average Score" style="-fx-font-size: 12; -fx-text-fill: white;" />
+                </VBox>
+
+                <VBox spacing="5" style="-fx-background-color: #f39c12; -fx-padding: 15; -fx-background-radius: 8;" prefWidth="150">
+                    <Label fx:id="bestScoreLabel" text="0%" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;" />
+                    <Label text="Best Score" style="-fx-font-size: 12; -fx-text-fill: white;" />
+                </VBox>
+            </HBox>
+
+            <!-- Filters -->
+            <HBox spacing="15" alignment="CENTER_LEFT">
+                <Label text="Filter by:" />
+                <ComboBox fx:id="examTypeFilter" promptText="All Types" />
+                <DatePicker fx:id="dateFromPicker" promptText="From Date" />
+                <DatePicker fx:id="dateToPicker" promptText="To Date" />
+                <Button text="Apply Filter" onAction="#handleApplyFilter"
+                        style="-fx-background-color: #8e44ad; -fx-text-fill: white;" />
+                <Button text="Clear" onAction="#handleClearFilter"
+                        style="-fx-background-color: #95a5a6; -fx-text-fill: white;" />
+            </HBox>
+
+            <!-- Exam History Table -->
+            <TableView fx:id="examHistoryTable" prefHeight="400">
+                <columns>
+                    <TableColumn fx:id="examNameColumn" text="Exam Name" prefWidth="200" />
+                    <TableColumn fx:id="dateColumn" text="Date" prefWidth="150" />
+                    <TableColumn fx:id="scoreColumn" text="Score" prefWidth="100" />
+                    <TableColumn fx:id="percentageColumn" text="Percentage" prefWidth="100" />
+                    <TableColumn fx:id="timeColumn" text="Time Taken" prefWidth="100" />
+                    <TableColumn fx:id="gradeColumn" text="Grade" prefWidth="80" />
+                    <TableColumn fx:id="typeColumn" text="Type" prefWidth="100" />
+                    <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="150" />
+                </columns>
+            </TableView>
+
+            <!-- Pagination -->
+            <HBox spacing="10" alignment="CENTER">
+                <Button fx:id="prevPageButton" text="← Previous" onAction="#handlePreviousPage" />
+                <Label fx:id="pageInfoLabel" text="Page 1 of 1" />
+                <Button fx:id="nextPageButton" text="Next →" onAction="#handleNextPage" />
+            </HBox>
+
+            <Label fx:id="messageLabel" style="-fx-font-size: 14;" />
+        </VBox>
+    </center>
+</BorderPane>
